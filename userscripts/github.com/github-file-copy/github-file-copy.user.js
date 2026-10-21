@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name         GitHub File Row Copy (Firefox)
 // @namespace    https://github.com/sguzman/firefox-scripts
-// @version      1.0.0
+// @version      1.0.1
 // @description  Copy a GitHub file from its repository row without opening it.
 // @match        https://github.com/*/*
 // @grant        GM_setClipboard
 // @grant        GM_xmlhttpRequest
 // @connect      github.com
+// @connect      raw.githubusercontent.com
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -33,11 +34,40 @@
     .fx-github-row-copy{cursor:pointer;display:inline-flex;align-items:center;
       border:1px solid var(--borderColor-default,#888);border-radius:5px;
       color:var(--fgColor-default,inherit);background:transparent;
-      font:12px system-ui;padding:2px 5px;margin-right:6px}
+      font:12px system-ui;padding:2px 5px;margin-right:6px;
+      justify-content:center;gap:5px;min-width:26px;min-height:23px;
+      line-height:1.3;vertical-align:middle}
+    .fx-github-row-copy svg{width:15px;height:15px;display:block;flex-shrink:0}
+    .fx-github-row-copy[data-state="copying"]{min-width:75px}
     .fx-github-row-copy:focus-visible{outline:2px solid var(--focus-outlineColor,#0969da)}
     .fx-github-row-copy:disabled{opacity:.6;cursor:wait}
   `;
   document.head.append(style);
+  // Inline icon only: no remote resources, fonts or extra permissions.
+  function makeCopyIcon() {
+    const ns='http://www.w3.org/2000/svg';
+    const svg=document.createElementNS(ns,'svg');
+    svg.setAttribute('viewBox','0 0 24 24');
+    svg.setAttribute('aria-hidden','true');
+    svg.setAttribute('focusable','false');
+    svg.setAttribute('fill','none');
+    svg.setAttribute('stroke','currentColor');
+    svg.setAttribute('stroke-width','2');
+    svg.setAttribute('stroke-linecap','round');
+    svg.setAttribute('stroke-linejoin','round');
+    const rect=document.createElementNS(ns,'rect');
+    for(const [name,value] of Object.entries({x:'8',y:'8',width:'13',height:'13',rx:'2'}))
+      rect.setAttribute(name,value);
+    const back=document.createElementNS(ns,'path');
+    back.setAttribute('d','M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3');
+    svg.append(rect,back);
+    return svg;
+  }
+  function setButtonState(button,state,label='') {
+    button.dataset.state=state;
+    button.replaceChildren(state==='idle'?makeCopyIcon():
+      document.createTextNode(label));
+  }
   function getText(url) {
     if(cache.has(url))return Promise.resolve(cache.get(url));
     return new Promise((resolve,reject)=>{
@@ -82,24 +112,34 @@
     if(!filename)return;
     const b=document.createElement('button');
     b.type='button';b.className='fx-github-row-copy';
-    b.textContent='Copy';b.title='Copy file contents';
-    b.setAttribute('aria-label','Copy contents of '+(link.textContent||'file').trim());
+    const accessibleName='Copy contents of '+(link.textContent||'file').trim();
+    b.title='Copy file contents';
+    b.setAttribute('aria-label',accessibleName);
+    setButtonState(b,'idle');
     b.addEventListener('click',async e=>{
       e.preventDefault();e.stopPropagation();
       if(b.disabled)return;
-      b.disabled=true;b.textContent='Copying…';
+      b.disabled=true;
+      b.title='Copying file contents';
+      b.setAttribute('aria-label','Copying file contents');
+      setButtonState(b,'copying','Copying…');
       try {
         const text=await getText(url);
         if(typeof GM_setClipboard!=='function')
           throw new Error('Userscript clipboard grant unavailable');
         GM_setClipboard(text,'text');
-        b.textContent='Copied';
+        b.title='Copied file contents';
+        setButtonState(b,'copied','Copied');
       } catch(error) {
-        b.textContent='Error';
         b.title=error instanceof Error?error.message:'Could not copy file';
+        setButtonState(b,'error','Error');
       } finally {
         setTimeout(()=>{
-          if(b.isConnected){b.disabled=false;b.textContent='Copy';}
+          if(!b.isConnected)return;
+          b.disabled=false;
+          b.title='Copy file contents';
+          b.setAttribute('aria-label',accessibleName);
+          setButtonState(b,'idle');
         },1200);
       }
     });

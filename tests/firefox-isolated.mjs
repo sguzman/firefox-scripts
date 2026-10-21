@@ -100,7 +100,7 @@ try{
     await page.locator('button[aria-label="Copy current code or writing block"]').click();
     assert.equal(await page.evaluate(()=>window.__nativeClicks),1);
   });
-  await run('GitHub File Row Copy: safe same-origin raw request',async page=>{
+  await run('GitHub File Row Copy: raw redirect permission and icon state lifecycle',async page=>{
     const html=`<!doctype html><html><body><main>
       <div class="react-directory-row"><div class="react-directory-filename-column">
         <span><a href="/owner/repo/blob/main/file.txt">file.txt</a></span></div></div>
@@ -108,19 +108,47 @@ try{
     await page.route('https://github.com/**',route=>route.fulfill({
       status:200,contentType:'text/html',body:html}));
     await page.goto('https://github.com/owner/repo');
-    await page.evaluate(()=>{
+    const script=await file('userscripts/github.com/github-file-copy/github-file-copy.user.js');
+    const allowed=[...script.matchAll(/^\/\/ @connect\s+(\S+)/gm)].map(m=>m[1]);
+    await page.evaluate(domains=>{
+      window.__allowConnect=domains;
       window.__rawReads=[];window.__clipboard=null;
       window.GM_setClipboard=text=>window.__clipboard=text;
       window.GM_xmlhttpRequest=opts=>{
         window.__rawReads.push(opts.url);
-        queueMicrotask(()=>opts.onload({status:200,responseText:'raw file contents',
-          responseHeaders:'content-type: text/plain'}));
-        return {abort(){}};
+        const redirected='https://raw.githubusercontent.com/owner/repo/main/file.txt';
+        const sourceHost=new URL(opts.url).hostname;
+        const finalHost=new URL(redirected).hostname;
+        const abortable={abort(){}};
+        if(!domains.includes(sourceHost)||!domains.includes(finalHost)){
+          queueMicrotask(()=>opts.onerror({error:'Request redirected to unlisted host'}));
+          return abortable;
+        }
+        // Deliberately hold the request so Firefox can assert the loading UI.
+        window.__finishRawRequest=()=>opts.onload({
+          status:200,finalUrl:redirected,responseText:'raw file contents',
+          responseHeaders:'content-type: text/plain'
+        });
+        return abortable;
       };
-    });
-    await page.addScriptTag({content:await file('userscripts/github.com/github-file-copy/github-file-copy.user.js')});
-    await page.locator('.fx-github-row-copy').click();
+    },allowed);
+    await page.addScriptTag({content:script});
+    const button=page.locator('.fx-github-row-copy');
+    await button.waitFor();
+    assert.equal(await button.getAttribute('data-state'),'idle');
+    assert.equal(await button.locator('svg').count(),1);
+    await button.click();
+    assert.equal(await button.getAttribute('data-state'),'copying');
+    assert.equal(await button.innerText(),'Copying…');
+    assert.equal(await button.isDisabled(),true);
+    assert.equal(await page.evaluate(()=>window.__clipboard),null);
+    assert.deepEqual(allowed.sort(),['github.com','raw.githubusercontent.com']);
+    await page.evaluate(()=>window.__finishRawRequest());
     await page.waitForFunction(()=>window.__clipboard==='raw file contents');
+    assert.equal(await button.getAttribute('data-state'),'copied');
+    await page.waitForFunction(()=>
+      document.querySelector('.fx-github-row-copy')?.dataset.state==='idle');
+    assert.equal(await button.locator('svg').count(),1);
     assert.deepEqual(await page.evaluate(()=>window.__rawReads),
       ['https://github.com/owner/repo/raw/main/file.txt']);
   });

@@ -79,7 +79,8 @@
         "GM_xmlhttpRequest"
       ],
       "connectHosts": [
-        "github.com"
+        "github.com",
+        "raw.githubusercontent.com"
       ]
     },
     {

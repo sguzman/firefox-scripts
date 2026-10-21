@@ -14,3 +14,18 @@ test('only file rows, explicit click, and cancellation cleanup',()=>{
  assert.match(s,/request\.abort\?\.\(\)/);
  assert.doesNotMatch(s,/setInterval\s*\(/);
 });
+
+test('v1.0.1 whitelists both GitHub and raw redirect host',()=>{
+ assert.match(s,/^\/\/ @version\s+1\.0\.1$/m);
+ assert.match(s,/^\/\/ @connect\s+github\.com$/m);
+ assert.match(s,/^\/\/ @connect\s+raw\.githubusercontent\.com$/m);
+ assert.doesNotMatch(s,/^\/\/ @connect\s+\*$/m);
+});
+test('copy icon is local SVG; Copying state is visible and temporary',()=>{
+ assert.match(s,/document\.createElementNS\(ns,'svg'\)/);
+ assert.match(s,/setButtonState\(b,'idle'\)/);
+ assert.match(s,/setButtonState\(b,'copying','Copying…'\)/);
+ assert.match(s,/setButtonState\(b,'copied','Copied'\)/);
+ assert.match(s,/setButtonState\(b,'error','Error'\)/);
+ assert.match(s,/if\(!b\.isConnected\)return/);
+});
