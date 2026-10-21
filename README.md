@@ -2,19 +2,20 @@
 
 Small, Firefox-first userscripts with independent code, tests, and permissions. This is **not** an extension repository.
 
-## Selected rebuilds (1–5)
+## Userscripts
 
-The following source scripts were selected and rebuilt here. They are **not installed** into any Firefox profile and are **not yet released** with automatic updates.
+### ChatGPT
 
-| Script | Firefox implementation |
-| --- | --- |
-| 1. ChatGPT Copy Entire Chat | [Code and documentation](userscripts/chatgpt.com/chatgpt-copy-entire-chat/) |
-| 2. ChatGPT Current Message Jump | [Code and documentation](userscripts/chatgpt.com/chatgpt-current-message-jump/) |
-| 3. ChatGPT Force Text Attachment | [Code and documentation](userscripts/chatgpt.com/chatgpt-force-text-attachment/) |
-| 4. ChatGPT Sticky Copy | [Code and documentation](userscripts/chatgpt.com/chatgpt-sticky-copy/) |
-| 5. GitHub File Row Copy | [Code and documentation](userscripts/github.com/github-file-copy/) |
+- **[Copy Entire Chat](userscripts/chatgpt.com/chatgpt-copy-entire-chat/chatgpt-copy-entire-chat.user.js)** — Copy a complete conversation from verified server history.
+- **[Current Message Jump](userscripts/chatgpt.com/chatgpt-current-message-jump/chatgpt-current-message-jump.user.js)** — Navigate long conversations with up/down controls.
+- **[Force Text Attachment](userscripts/chatgpt.com/chatgpt-force-text-attachment/chatgpt-force-text-attachment.user.js)** — Attach clipboard text as a `.txt` file.
+- **[Sticky Copy](userscripts/chatgpt.com/chatgpt-sticky-copy/chatgpt-sticky-copy.user.js)** — Keep a Copy control accessible on long code and writing blocks.
 
-The unselected five remain candidates. See the [complete inventory](userscripts/README.md) and machine-readable [catalog](catalog.json).
+### GitHub
+
+- **[File Row Copy](userscripts/github.com/github-file-copy/github-file-copy.user.js)** — Copy a file's contents directly from a repository listing.
+
+These scripts have been rebuilt and tested in isolated Firefox environments, but are **not installed in your Firefox profile or released with automatic updates**. See the [migration inventory](userscripts/README.md) and [machine-readable catalog](catalog.json) for other candidates.
 
 ## Stability contract
 
