@@ -124,6 +124,61 @@ try{
     assert.deepEqual(await page.evaluate(()=>window.__rawReads),
       ['https://github.com/owner/repo/raw/main/file.txt']);
   });
+  await run('ChatGPT coexistence: long transcript and streamed DOM churn',async page=>{
+    await page.setContent('<main id="conversation"></main>');
+    await page.evaluate(()=>{
+      const main=document.querySelector('main');
+      const fragment=document.createDocumentFragment();
+      for(let i=0;i<3500;i++){
+        const item=document.createElement('article');
+        item.dataset.testid='conversation-turn-'+i;
+        item.dataset.turnKey='turn-'+i;
+        const role=document.createElement('div');
+        role.dataset.messageAuthorRole=i%2?'assistant':'user';
+        role.textContent='Synthetic turn '+i;
+        item.append(role);fragment.append(item);
+      }
+      main.append(fragment);
+      const composer=document.createElement('form');
+      composer.style.cssText='position:fixed;bottom:8px;left:500px;background:white;display:flex;gap:20px';
+      composer.innerHTML='<button type="button" id="composer-plus-btn">+</button>'+
+        '<textarea id="prompt-textarea" style="width:300px;height:40px"></textarea>';
+      main.append(composer);
+      window.GM_registerMenuCommand=(_name,fn)=>{window.__exportCommand=fn;};
+      window.GM_setClipboard=()=>{};
+      Object.defineProperty(navigator,'clipboard',{configurable:true,value:{
+        readText:async()=> 'synthetic clipboard'
+      }});
+    });
+    const scripts=[
+      'userscripts/chatgpt.com/chatgpt-copy-entire-chat/chatgpt-copy-entire-chat.user.js',
+      'userscripts/chatgpt.com/chatgpt-current-message-jump/chatgpt-current-message-jump.user.js',
+      'userscripts/chatgpt.com/chatgpt-force-text-attachment/chatgpt-force-text-attachment.user.js',
+      'userscripts/chatgpt.com/chatgpt-sticky-copy/chatgpt-sticky-copy.user.js'
+    ];
+    for(const path of scripts)await page.addScriptTag({content:await file(path)});
+    await page.evaluate(()=>window.scrollTo(0,document.body.scrollHeight-600));
+    const ms=await page.evaluate(async()=>{
+      const start=performance.now(),main=document.querySelector('main');
+      // Heavy streaming text should not cause whole-transcript rescans.
+      for(let i=0;i<450;i++) {
+        const node=document.createElement('span');
+        node.textContent='part';
+        main.lastElementChild?.append(node);
+      }
+      await new Promise(done=>requestAnimationFrame(()=>requestAnimationFrame(done)));
+      return performance.now()-start;
+    });
+    assert.ok(ms<5000,'Synthetic stream churn became excessively slow: '+ms+'ms');
+    const counts=await page.evaluate(()=>({
+      jump:document.querySelectorAll('#fx-current-message-jump').length,
+      sticky:document.querySelectorAll('button[aria-label="Copy current code or writing block"]').length,
+      clipboard:document.querySelectorAll('button[aria-label="Attach clipboard text as a .txt file"]').length,
+      export:typeof window.__exportCommand
+    }));
+    assert.deepEqual(counts,{jump:1,sticky:1,clipboard:1,export:'function'});
+    console.log('PASS coexistence under 3500 turns and 450 synthetic edits ('+Math.round(ms)+'ms)');
+  });
 } finally {
   await browser.close();
 }
