@@ -1,6 +1,6 @@
 # Firefox userscripts
 
-The first five source scripts were selected for Firefox rebuilding and have code and tests in this repository. They are **rebuilt**, not installed or released. The remaining five are still only candidates.
+The first five source scripts were selected for Firefox rebuilding and have code and tests in this repository. They are **rebuilt and tested in disposable Firefox on synthetic pages**, not installed or released. Actual authenticated ChatGPT/GitHub interaction remains unverified. The remaining five are still only candidates.
 
 | # | Status | Script | Description |
 |---|---|---|---|

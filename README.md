@@ -20,7 +20,9 @@ The unselected five remain candidates. See the [complete inventory](userscripts/
 
 Each script is self-contained, with no `@require` scripts, cross-tab coordination, extension APIs, privileged browser-profile operations, or automatic install/update endpoints. DOM-dependent work is bounded; clipboard and network operations are explicit user actions. A failing operation must not silently modify a composer, copy an incomplete transcript, or repeat an upload.
 
-The [safety policy](docs/SAFETY.md) describes correctness, bounded performance, and QA gates. CI runs permission and invariant tests. **Automated tests are evidence, not a guarantee of real-profile browser stability.** No tests touch a user's existing Firefox profile.
+The [safety policy](docs/SAFETY.md) describes correctness, bounded performance, and QA gates. CI runs [static/unit checks](https://github.com/sguzman/firefox-scripts/actions/workflows/ci.yml) and [isolated Firefox integration](https://github.com/sguzman/firefox-scripts/actions/workflows/firefox-isolated.yml). All five synthetic functional scenarios and combined long-conversation stress QA passed on October 21, 2026. **This does not prove compatibility with the live ChatGPT/GitHub DOM or guarantee real-profile browser stability.** No tests touch an existing Firefox profile.
+
+Run locally with `node tools/check.mjs && node --test`. The Firefox test runner is `node tests/firefox-isolated.mjs` after installing Playwright and its Firefox browser in an isolated development environment.
 
 ## Browser extensions — external links only
 

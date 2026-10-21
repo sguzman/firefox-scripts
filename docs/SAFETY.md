@@ -18,6 +18,6 @@ No injection across tabs, extension management, browser-profile access, or proce
 
 Each selected script requires source and permission review, a small README explaining its behavior, unit/invariant tests, and isolated Firefox QA using a disposable temporary profile with synthetic data. Check long pages, rapid navigation, cancellation and simultaneous normal browsing, as relevant. Never open or automate the user's actual Firefox profile.
 
-CI provides static evidence only. Browser behavior and performance are **unverified** until isolated Firefox testing passes; even isolated QA cannot guarantee stability in the user's real profile.
+CI now runs dependency-free static/unit checks and disposable Firefox browser tests with synthetic content, including a 3,500-turn/450-edit multi-script coexistence scenario. Passing these tests is positive evidence for Firefox browser mechanics, **not** verification of real ChatGPT/GitHub authenticated DOM behavior or a guarantee of the user's browser stability. Neither CI suite touches the user's actual Firefox profile.
 
 No code, migration, Firefox settings, or installed userscript is changed merely because an item is in the catalog. Work directly on `main`; preserve the original source repository untouched.
