@@ -20,12 +20,15 @@ document.addEventListener('click',()=>{});
 `;
 }
 
-test('bootstrap has exactly ten unapproved candidates and no installed script',async()=>{
+test('five selected rebuilds are registered; unselected five remain candidates',async()=>{
   const errors=await checkRepository();
   assert.deepEqual(errors,[]);
   const {default:data}=await import('../catalog.json',{with:{type:'json'}});
   assert.equal(data.scripts.length,10);
-  assert.ok(data.scripts.every(s=>s.status==='candidate'));
+  assert.equal(data.scripts.filter(s=>s.status==='rebuilt').length,5);
+  assert.equal(data.scripts.filter(s=>s.status==='candidate').length,5);
+  assert.deepEqual(data.scripts.slice(0,5).map(s=>s.status),
+    Array(5).fill('rebuilt'));
 });
 
 test('narrow Firefox userscript metadata is accepted',()=>{

@@ -1,36 +1,34 @@
 # firefox-scripts
 
-Firefox-first userscripts, maintained as small **independent scripts**, not browser extensions.
+Small, Firefox-first userscripts with independent code, tests, and permissions. This is **not** an extension repository.
 
-This repository is a clean start. **No userscript has been copied, installed, enabled, or approved.** The ten candidates in [the inventory](userscripts/README.md) are references to source material in [script-monkey](https://github.com/sguzman/script-monkey); each must be explicitly selected and rebuilt for Firefox before it appears here.
+## Selected rebuilds (1–5)
 
-## Structure
+The following source scripts were selected and rebuilt here. They are **not installed** into any Firefox profile and are **not yet released** with automatic updates.
 
-- [userscripts/](userscripts/README.md) — candidate inventory and, after approval, one self-contained project directory per userscript, grouped by site
-- [catalog.json](catalog.json) — machine-readable source inventory and migration state
-- [docs/SAFETY.md](docs/SAFETY.md) — correctness, performance, browser-stability and QA requirements
-- [tools/check.mjs](tools/check.mjs) — dependency-free repository and userscript safety checks
-- [tests/](tests/) — static safety-check tests; each future script will have its own tests
-
-Only explicitly selected userscripts will be rebuilt. An entry in the inventory is **not** permission to port or activate it. The GitHub workflow performs static checks without running scripts in any browser.
-
-## Browser extensions — links only
-
-Extensions have their own source, release, permissions, and QA lifecycle. **No extension code or shared extension build lives in this repository.**
-
-The existing extensions have **not yet been extracted into their own repositories**. Until that happens, these are clearly marked links to legacy source locations, not standalone extension repos:
-
-| Extension | Existing source (pending independent repository) |
+| Script | Firefox implementation |
 | --- | --- |
-| ChatGPT Tab Signal | [Legacy source in script-monkey](https://github.com/sguzman/script-monkey/tree/main/extensions/chatgpt-tab-signal) |
-| Jobflick Bridge | [Legacy source in script-monkey](https://github.com/sguzman/script-monkey/tree/main/extensions/jobflick-bridge) |
+| 1. ChatGPT Copy Entire Chat | [Code and documentation](userscripts/chatgpt.com/chatgpt-copy-entire-chat/) |
+| 2. ChatGPT Current Message Jump | [Code and documentation](userscripts/chatgpt.com/chatgpt-current-message-jump/) |
+| 3. ChatGPT Force Text Attachment | [Code and documentation](userscripts/chatgpt.com/chatgpt-force-text-attachment/) |
+| 4. ChatGPT Sticky Copy | [Code and documentation](userscripts/chatgpt.com/chatgpt-sticky-copy/) |
+| 5. GitHub File Row Copy | [Code and documentation](userscripts/github.com/github-file-copy/) |
 
-When separate public repositories are actually created and verified, replace the legacy links with those repository URLs. Firefox extension development is **not part of this migration**.
+The unselected five remain candidates. See the [complete inventory](userscripts/README.md) and machine-readable [catalog](catalog.json).
 
-## Rule of operation
+## Stability contract
 
-**Correctness, bounded performance, and browser stability are release gates.** No mass tab injection, no broad site permissions, no permanent high-frequency polling, no unbounded transcript scans, and no update-time operations on an active browser profile. A test suite passing is not proof of compatibility with a user's live Firefox profile.
+Each script is self-contained, with no `@require` scripts, cross-tab coordination, extension APIs, privileged browser-profile operations, or automatic install/update endpoints. DOM-dependent work is bounded; clipboard and network operations are explicit user actions. A failing operation must not silently modify a composer, copy an incomplete transcript, or repeat an upload.
 
-Work directly on `main`. Do not modify or delete the legacy `script-monkey` source while rebuilding selected scripts here.
+The [safety policy](docs/SAFETY.md) describes correctness, bounded performance, and QA gates. CI runs permission and invariant tests. **Automated tests are evidence, not a guarantee of real-profile browser stability.** No tests touch a user's existing Firefox profile.
 
-MIT license; see [LICENSE](LICENSE).
+## Browser extensions — external links only
+
+Extensions remain separate projects, never contained here. Independent extension repositories have not been confirmed, so the verified links below point to their **legacy source only**:
+
+- [ChatGPT Tab Signal (legacy Chromium source)](https://github.com/sguzman/script-monkey/tree/main/extensions/chatgpt-tab-signal)
+- [Jobflick Bridge (legacy Chromium source)](https://github.com/sguzman/script-monkey/tree/main/extensions/jobflick-bridge)
+
+When an independent public repo exists for an extension, replace its legacy link. Firefox extension development is a later, separate task.
+
+Development is directly on `main`. The original [script-monkey](https://github.com/sguzman/script-monkey) repository is left unchanged. MIT license.

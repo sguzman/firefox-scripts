@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "sourceRepository": "https://github.com/sguzman/script-monkey",
-  "scope": "Firefox-first userscript migration candidates. Nothing is approved, installed, or copied.",
+  "scope": "Firefox-first migration: scripts 1–5 rebuilt in the repository for review, not installed or enabled in a user browser; 6–10 remain candidates.",
   "scripts": [
     {
       "id": "chatgpt-copy-entire-chat",
@@ -13,7 +13,11 @@
         "www.chatgpt.com"
       ],
       "source": "https://github.com/sguzman/script-monkey/blob/main/userscripts/chatgpt.com/chatgpt-copy-entire-chat/chatgpt-copy-entire-chat.user.js",
-      "status": "candidate"
+      "status": "rebuilt",
+      "allowedGrants": [
+        "GM_setClipboard",
+        "GM_registerMenuCommand"
+      ]
     },
     {
       "id": "chatgpt-current-message-jump",
@@ -25,7 +29,10 @@
         "www.chatgpt.com"
       ],
       "source": "https://github.com/sguzman/script-monkey/blob/main/userscripts/chatgpt.com/chatgpt-current-message-jump/chatgpt-current-message-jump.user.js",
-      "status": "candidate"
+      "status": "rebuilt",
+      "allowedGrants": [
+        "none"
+      ]
     },
     {
       "id": "chatgpt-force-text-attachment",
@@ -37,7 +44,10 @@
         "www.chatgpt.com"
       ],
       "source": "https://github.com/sguzman/script-monkey/blob/main/userscripts/chatgpt.com/chatgpt-force-text-attachment/chatgpt-force-text-attachment.user.js",
-      "status": "candidate"
+      "status": "rebuilt",
+      "allowedGrants": [
+        "none"
+      ]
     },
     {
       "id": "chatgpt-sticky-copy",
@@ -49,7 +59,10 @@
         "www.chatgpt.com"
       ],
       "source": "https://github.com/sguzman/script-monkey/blob/main/userscripts/chatgpt.com/chatgpt-sticky-copy/chatgpt-sticky-copy.user.js",
-      "status": "candidate"
+      "status": "rebuilt",
+      "allowedGrants": [
+        "GM_setClipboard"
+      ]
     },
     {
       "id": "github-file-copy",
@@ -60,7 +73,14 @@
         "github.com"
       ],
       "source": "https://github.com/sguzman/script-monkey/blob/main/userscripts/github.com/github-file-copy/github-file-copy.user.js",
-      "status": "candidate"
+      "status": "rebuilt",
+      "allowedGrants": [
+        "GM_setClipboard",
+        "GM_xmlhttpRequest"
+      ],
+      "connectHosts": [
+        "github.com"
+      ]
     },
     {
       "id": "youtube-play-all",
