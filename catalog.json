@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "sourceRepository": "https://github.com/sguzman/script-monkey",
+  "scope": "Firefox-first userscript migration candidates. Nothing is approved, installed, or copied.",
+  "scripts": [
+    {
+      "id": "chatgpt-copy-entire-chat",
+      "site": "chatgpt.com",
+      "title": "ChatGPT Copy Entire Chat",
+      "summary": "Export the complete current conversation to the clipboard, including paginated API retrieval and fallback.",
+      "hosts": [
+        "chatgpt.com",
+        "www.chatgpt.com"
+      ],
+      "source": "https://github.com/sguzman/script-monkey/blob/main/userscripts/chatgpt.com/chatgpt-copy-entire-chat/chatgpt-copy-entire-chat.user.js",
+      "status": "candidate"
+    },
+    {
+      "id": "chatgpt-current-message-jump",
+      "site": "chatgpt.com",
+      "title": "ChatGPT Current Message Jump",
+      "summary": "Display unobtrusive navigation arrows for long ChatGPT responses.",
+      "hosts": [
+        "chatgpt.com",
+        "www.chatgpt.com"
+      ],
+      "source": "https://github.com/sguzman/script-monkey/blob/main/userscripts/chatgpt.com/chatgpt-current-message-jump/chatgpt-current-message-jump.user.js",
+      "status": "candidate"
+    },
+    {
+      "id": "chatgpt-force-text-attachment",
+      "site": "chatgpt.com",
+      "title": "ChatGPT Force Text Attachment",
+      "summary": "Attach clipboard plain text to a ChatGPT prompt as a .txt file.",
+      "hosts": [
+        "chatgpt.com",
+        "www.chatgpt.com"
+      ],
+      "source": "https://github.com/sguzman/script-monkey/blob/main/userscripts/chatgpt.com/chatgpt-force-text-attachment/chatgpt-force-text-attachment.user.js",
+      "status": "candidate"
+    },
+    {
+      "id": "chatgpt-sticky-copy",
+      "site": "chatgpt.com",
+      "title": "ChatGPT Sticky Copy",
+      "summary": "Keep an accessible Copy control available for long code and writing blocks.",
+      "hosts": [
+        "chatgpt.com",
+        "www.chatgpt.com"
+      ],
+      "source": "https://github.com/sguzman/script-monkey/blob/main/userscripts/chatgpt.com/chatgpt-sticky-copy/chatgpt-sticky-copy.user.js",
+      "status": "candidate"
+    },
+    {
+      "id": "github-file-copy",
+      "site": "github.com",
+      "title": "GitHub File Row Copy",
+      "summary": "Copy file contents directly from a GitHub repository listing.",
+      "hosts": [
+        "github.com"
+      ],
+      "source": "https://github.com/sguzman/script-monkey/blob/main/userscripts/github.com/github-file-copy/github-file-copy.user.js",
+      "status": "candidate"
+    },
+    {
+      "id": "youtube-play-all",
+      "site": "youtube.com",
+      "title": "YouTube Play All",
+      "summary": "Construct and reuse a private channel playlist with video, Shorts, and live-feed ordering.",
+      "hosts": [
+        "www.youtube.com"
+      ],
+      "source": "https://github.com/sguzman/script-monkey/blob/main/userscripts/youtube.com/youtube-play-all/youtube-play-all.user.js",
+      "status": "candidate"
+    },
+    {
+      "id": "duolingo-qol",
+      "site": "duolingo.com",
+      "title": "Duolingo QoL",
+      "summary": "Make Duolingo practice text selectable and easier to copy.",
+      "hosts": [
+        "www.duolingo.com"
+      ],
+      "source": "https://github.com/sguzman/script-monkey/blob/main/userscripts/duolingo.com/duolingo-qol/duolingo-qol.user.js",
+      "status": "candidate"
+    },
+    {
+      "id": "backloggd-export",
+      "site": "backloggd.com",
+      "title": "Backloggd Export",
+      "summary": "Export a Backloggd profile game library to CSV using the signed-in session.",
+      "hosts": [
+        "backloggd.com"
+      ],
+      "source": "https://github.com/sguzman/script-monkey/blob/main/userscripts/backloggd.com/backloggd-export/backloggd-export.user.js",
+      "status": "candidate"
+    },
+    {
+      "id": "libgen-filter",
+      "site": "libgen",
+      "title": "Libgen Filter",
+      "summary": "Filter supported Libgen mirror search results by title, language, and extension.",
+      "hosts": [
+        "libgen.is",
+        "*.libgen.is",
+        "libgen.rs",
+        "*.libgen.rs",
+        "libgen.st",
+        "*.libgen.st",
+        "libgen.li",
+        "*.libgen.li",
+        "libgen.gs",
+        "*.libgen.gs",
+        "libgen.lc",
+        "*.libgen.lc",
+        "gen.lib.rus.ec"
+      ],
+      "source": "https://github.com/sguzman/script-monkey/blob/main/userscripts/libgen/libgen-filter/libgen-filter.user.js",
+      "status": "candidate"
+    },
+    {
+      "id": "scribd-downloader",
+      "site": "scribd.com",
+      "title": "Scribd Downloader",
+      "summary": "Legacy Scribd reader/download helper; compatibility and authorization require review.",
+      "hosts": [
+        "*.scribd.com"
+      ],
+      "source": "https://github.com/sguzman/script-monkey/blob/main/userscripts/scribd.com/scribd-downloader/scribd-downloader.user.js",
+      "status": "candidate"
+    }
+  ]
+}
