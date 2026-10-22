@@ -127,10 +127,12 @@ try{
         target.dispatchEvent(new KeyboardEvent('keydown',{
           key:'v',ctrlKey:true,shiftKey:shift,bubbles:true,cancelable:true
         }));
-        const data=new DataTransfer();data.setData('text/plain',text);
-        const event=new ClipboardEvent('paste',{
-          clipboardData:data,bubbles:true,cancelable:true
-        });
+        // Synthetic ClipboardEvent does not preserve constructor clipboardData
+        // consistently in Firefox. Supply a deterministic paste-event payload.
+        const event=new Event('paste',{bubbles:true,cancelable:true});
+        Object.defineProperty(event,'clipboardData',{value:{
+          getData:type=>type==='text/plain'?text:''
+        }});
         target.dispatchEvent(event);
         return event.defaultPrevented;
       };
@@ -163,8 +165,10 @@ try{
       const editor=document.getElementById('prompt-textarea');
       editor.focus();
       editor.dispatchEvent(new KeyboardEvent('keydown',{key:'v',ctrlKey:true,shiftKey:true,bubbles:true}));
-      const dt=new DataTransfer();dt.setData('text/plain','Sample');
-      const ev=new ClipboardEvent('paste',{clipboardData:dt,bubbles:true,cancelable:true});
+      const ev=new Event('paste',{bubbles:true,cancelable:true});
+      Object.defineProperty(ev,'clipboardData',{value:{
+        getData:type=>type==='text/plain'?'Sample':''
+      }});
       editor.dispatchEvent(ev);
       return ev.defaultPrevented;
     });
