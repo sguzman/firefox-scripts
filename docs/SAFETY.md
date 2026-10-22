@@ -29,3 +29,7 @@ Each selected script requires source and permission review, a small README expla
 CI now runs dependency-free static/unit checks and disposable Firefox browser tests with synthetic content, including a 3,500-turn/450-edit multi-script coexistence scenario. Passing these tests is positive evidence for Firefox browser mechanics, **not** verification of real ChatGPT/GitHub authenticated DOM behavior or a guarantee of the user's browser stability. Neither CI suite touches the user's actual Firefox profile.
 
 No code, migration, Firefox settings, or installed userscript is changed merely because an item is in the catalog. Work directly on `main`; preserve the original source repository untouched.
+
+## Reviewed Firefox extension in this repository
+
+The `extensions/chatgpt-force-text-attachment/` add-on is a narrow, user-selected exception to the original userscripts-only convention. Firefox's `clipboardRead` permission is required to read text without Firefox's Paste prompt. It is restricted to `chatgpt.com`; never read the clipboard until the user explicitly clicks its button, and never send messages or upload without a confirmed on-page user action. No background scripts, cross-tab activity, network requests, telemetry, or automatic installation. Synthetic tests cannot establish authenticated live-site upload compatibility.

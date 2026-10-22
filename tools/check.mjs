@@ -131,8 +131,38 @@ export async function checkRepository(root = ROOT) {
   for (const actual of await listScripts(path.join(root,'userscripts'))) {
     if (!expected.has(actual)) errors.push('uncataloged userscript: '+actual);
   }
-  if (await exists(path.join(root,'extensions')))
-    errors.push('extension code is not allowed here; use README links');
+  // Explicitly reviewed same-repository Firefox extension; no broader
+  // extension permission is implicitly approved by this exception.
+  const extRoot=path.join(root,'extensions');
+  const ext=path.join(extRoot,'chatgpt-force-text-attachment');
+  if (!await exists(ext)) errors.push('reviewed clipboard extension is missing');
+  else {
+    const siblings=await readdir(extRoot,{withFileTypes:true});
+    for(const item of siblings)
+      if(!item.isDirectory()||item.name!=='chatgpt-force-text-attachment')
+        errors.push('unreviewed extension entry: '+item.name);
+    const manifest=JSON.parse(await readFile(path.join(ext,'manifest.json'),'utf8'));
+    const content=await readFile(path.join(ext,'content.js'),'utf8');
+    const exact=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+    if(manifest.manifest_version!==3 || !/^\\d+\\.\\d+\\.\\d+$/.test(manifest.version||''))
+      errors.push('extension requires Manifest V3 and semver');
+    if(!exact(manifest.permissions,['clipboardRead'])||
+       !exact(manifest.host_permissions,['https://chatgpt.com/*']))
+      errors.push('extension requests unreviewed permissions');
+    if(manifest.background || manifest.externally_connectable)
+      errors.push('extension background or external access is not approved');
+    const scripts=manifest.content_scripts;
+    if(!Array.isArray(scripts)||scripts.length!==1||
+       !exact(scripts[0].matches,['https://chatgpt.com/*'])||
+       !exact(scripts[0].js,['content.js'])||
+       scripts[0].all_frames!==false)
+      errors.push('extension content script scope is not approved');
+    if(/\\bsetInterval\\s*\\(|\\beval\\s*\\(|\\bfetch\\s*\\(|\\bXMLHttpRequest\\b/.test(content))
+      errors.push('extension contains unexpected periodic or network activity');
+    for(const name of ['README.md','content.test.mjs'])
+      if(!await exists(path.join(ext,name)))
+        errors.push('extension required file missing: '+name);
+  }
   return errors;
 }
 
@@ -141,6 +171,6 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     if (errors.length) {
       for (const error of errors) console.error('FAIL: '+error);
       process.exitCode = 1;
-    } else console.log('PASS: inventory, script scopes, permissions and repository separation');
+    } else console.log('PASS: inventory, script scopes, permissions and reviewed extension');
   }).catch(error=>{console.error(error);process.exitCode=1;});
 }
