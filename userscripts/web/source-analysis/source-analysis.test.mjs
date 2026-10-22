@@ -2,13 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 const s=await readFile(new URL('./source-analysis.user.js',import.meta.url),'utf8');
-test('new script starts at v1.0.0 and does nothing before menu click',()=>{
-  assert.match(s,/^\/\/ @version\s+1\.0\.0$/m);
+test('v1.0.1 protects inline parsing and stays manual-only',()=>{
+  assert.match(s,/^\/\/ @version\s+1\.0\.1$/m);
   assert.match(s,/GM_registerMenuCommand\('Download source analysis ZIP',run\)/);
   assert.doesNotMatch(s,/\bsetInterval\s*\(/);
   assert.doesNotMatch(s,/new MutationObserver/);
   assert.doesNotMatch(s,/window\.fetch\s*=/);
   assert.doesNotMatch(s,/\beval\s*\(/);
+  assert.match(s,/script\[type="module"\]:not\(\[src\]\),style/);
+  assert.match(s,/validCodeSpecifier/);
 });
 test('fast code-only budget is smaller than full snapshot',()=>{
   assert.match(s,/resources: 120/);

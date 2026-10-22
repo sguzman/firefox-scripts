@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Source Analysis ZIP (Firefox)
 // @namespace    https://github.com/sguzman/firefox-scripts
-// @version      1.0.0
+// @version      1.0.1
 // @description  Manually download current rendered DOM and accessible CSS, JS, source maps and WASM.
 // @match        https://*/*
 // @match        http://*/*
@@ -120,6 +120,12 @@
       const value=el.getAttribute('src')||el.getAttribute('poster')||el.getAttribute('href');
       reference(value,base,'binary','not-downloaded');
     }
+    // Reject suspicious pseudo-imports from minified code, regex literals,
+    // or documentation strings. Only URL-like paths are request candidates.
+    const validCodeSpecifier=value=>typeof value==='string' &&
+      value.length>0 && value.length<512 &&
+      !/[\s"'<>()[\]{};\\|^$]/.test(value) &&
+      /^(?:https?:\/\/|\/|\.\.?\/)/i.test(value);
     const discover=(text,origin,kind,depth)=>{
       if(kind==='css'){
         const imports=/@import\s+(?:url\(\s*)?['"]([^'")]+)['"]/gi;
@@ -137,12 +143,16 @@
       if(kind==='javascript'){
         const imp=/(?:\bimport\s*(?:[^'"]{0,180}?\sfrom\s*)?|\bexport\s+[^'"]{0,180}?\sfrom\s*|\bimport\s*\(|\bnew\s+(?:Shared)?Worker\s*\()\s*['"]([^'"]+)['"]/g;
         let m,count=0;
-        while((m=imp.exec(text)) && ++count<=180)
-          enqueue(m[1],origin,'javascript',depth+1,'js-module-import');
+        while((m=imp.exec(text)) && ++count<=180) {
+          if(validCodeSpecifier(m[1]))
+            enqueue(m[1],origin,'javascript',depth+1,'js-module-import');
+        }
         const wasm=/['"]([^'"]+\.wasm(?:\?[^'"]*)?)['"]/gi;
         count=0;
-        while((m=wasm.exec(text)) && ++count<=80)
-          enqueue(m[1],origin,'wasm',depth+1,'js-wasm-reference');
+        while((m=wasm.exec(text)) && ++count<=80) {
+          if(validCodeSpecifier(m[1]))
+            enqueue(m[1],origin,'wasm',depth+1,'js-wasm-reference');
+        }
       }
       if(kind==='css' || kind==='javascript'){
         const maps=/[#@]\s*sourceMappingURL\s*=\s*([^\s*]+)/g;
@@ -153,10 +163,10 @@
     };
     // Discovery from inline scripts/styles, bounded by DOM size and
     // existing user-triggered scan; do not execute any of the code.
-    const inline=document.querySelectorAll('script:not([src]),style');
+    const inline=document.querySelectorAll('script[type="module"]:not([src]),style');
     for(let i=0;i<Math.min(inline.length,300);i++){
       const el=inline[i],body=el.textContent||'';
-      if(body.length>2*1024*1024)continue;
+      if(body.length>200*1024)continue;
       discover(body,base,el.localName==='style'?'css':'javascript',0);
     }
     return {dom,assets,references,omitted,discover};
@@ -317,7 +327,7 @@
         url:x.url,kind:x.kind,reason:x.error||x.status
       }));
       const manifest={
-        format:'firefox-source-analysis-v1',version:'1.0.0',
+        format:'firefox-source-analysis-v1',version:'1.0.1',
         url:at,title:document.title,capturedAt:new Date().toISOString(),
         budgets:LIMIT,summary:counters,
         captured:captured.map(x=>({
@@ -338,7 +348,7 @@
       const entries=[
         ['rendered-dom.html.txt',state.dom],
         ['manifest.json',JSON.stringify(manifest,null,2)],
-        ['README.txt','Source Analysis ZIP v1.0.0\n\n'+
+        ['README.txt','Source Analysis ZIP v1.0.1\n\n'+
           'rendered-dom.html.txt — current rendered HTML (non-executable)\n'+
           'code/ — available JS, CSS, WASM and source maps\n'+
           'manifest.json — sources, failures and binary URL references\n\n'+

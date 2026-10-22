@@ -1,6 +1,6 @@
 # Source Analysis ZIP
 
-Version **v1.0.0** — a separate, deliberately lightweight companion to [Page Snapshot ZIP](../page-snapshot/). **The original full snapshot is unchanged.**
+Version **v1.0.1** (initial v1.0.0; corrected inline dependency parsing) — a separate, deliberately lightweight companion to [Page Snapshot ZIP](../page-snapshot/). **The original full snapshot is unchanged.**
 
 To use: install the `.user.js` in Tampermonkey, open any HTTP(S) page, and choose **Tampermonkey → Source Analysis ZIP → Download source analysis ZIP**. No asset discovery or network request runs before that menu action. The result is a ZIP for your Viewsource research project.
 
