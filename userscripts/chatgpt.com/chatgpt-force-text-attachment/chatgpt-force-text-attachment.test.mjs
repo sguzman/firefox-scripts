@@ -16,10 +16,12 @@ test('does not auto-submit, retry uploads, or accept unconfirmed state',()=>{
  assert.doesNotMatch(s,/\.submit\s*\(|send-button.*click\s*\(/);
 });
 
-test('v1.0.1 supports home-page composer and inverse theme',()=>{
- assert.match(s,/^\/\/ @version\s+1\.0\.1$/m);
+test('v1.0.2 finds the + independently and positions the control outside',()=>{
+ assert.match(s,/^\/\/ @version\s+1\.0\.2$/m);
  assert.match(s,/^\/\/ @match\s+https:\/\/chatgpt\.com\/\*$/m);
  assert.match(s,/prefers-color-scheme:dark/);
- assert.match(s,/const candidates=\[\]/);
+ assert.match(s,/if\(!plus&&!prompt\)return null/);
+ assert.match(s,/const leftEdge=Math\.min/);
+ assert.match(s,/const above=/);
  assert.match(s,/observer\.observe\(document\.body/);
 });
