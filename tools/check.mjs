@@ -38,7 +38,7 @@ export function checkScript(entry, source) {
   const matches = meta.get('match') || [];
   if (!matches.length) errors.push('no @match declarations');
   for (const match of matches) {
-    const m = match.match(/^https:\/\/([\w*.-]+)\/[^\s]*$/);
+    const m = match.match(/^https?:\/\/([\w*.-]+)\/[^\s]*$/);
     if (!m || !entry.hosts.includes(m[1]))
       errors.push('host not explicitly approved: '+match);
   }
@@ -104,9 +104,12 @@ export async function checkRepository(root = ROOT) {
     if (!/^[a-z0-9.]+$/.test(entry.site || '')) errors.push('invalid site: '+label);
     if (!ALLOWED_STATES.has(entry.status)) errors.push('invalid status: '+label);
     if (!Array.isArray(entry.hosts) || !entry.hosts.length ||
-        entry.hosts.some(host=>!/^(?:\*\.)?[a-z0-9.-]+$/.test(host)))
+        entry.hosts.some(host=> !/^(?:\*\.)?[a-z0-9.*-]+$/.test(host)))
       errors.push('missing or invalid explicit allowed hosts: '+label);
-    const source = `${SOURCE_REPO}/blob/main/userscripts/${entry.site}/${label}/${label}.user.js`;
+    if ((entry.hosts.includes('*') || (entry.connectHosts || []).includes('*')) &&
+        !(entry.id === 'page-snapshot' && entry.scope === 'all-pages-manual'))
+      errors.push('broad permissions require explicit manual snapshot review: '+label);
+    const source = `${entry.origin === 'native' ? REPO : SOURCE_REPO}/blob/main/userscripts/${entry.site}/${label}/${label}.user.js`;
     if (entry.source !== source) errors.push('unverified source path: '+label);
     const rel = `userscripts/${entry.site}/${label}/${label}.user.js`;
     expected.add(rel);

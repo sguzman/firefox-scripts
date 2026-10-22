@@ -152,6 +152,97 @@ try{
     assert.deepEqual(await page.evaluate(()=>window.__rawReads),
       ['https://github.com/owner/repo/raw/main/file.txt']);
   });
+  await run('Page Snapshot ZIP: manual trigger, captured assets, valid offline archive',async page=>{
+    const html='<!doctype html><html><head><title>Snapshot fixture</title>'+
+      '<link rel="stylesheet" href="/main.css">'+
+      '<style>.hero{background:url("/bg.svg")}</style>'+
+      '<script src="/app.js" type="module"></script></head>'+
+      '<body><main><h1>Saved visible DOM</h1>'+
+      '<img src="/photo.svg" alt="test"><div class="hero">body</div></main></body></html>';
+    await page.route('https://snapshot.example/**',route=>{
+      const pathname=new URL(route.request().url()).pathname;
+      const resources={
+        '/main.css':['text/css','@import "extra.css"; .content{background:url("/photo.svg")}'],
+        '/extra.css':['text/css','h1{color:blue}'],
+        '/app.js':['application/javascript','import "./dep.js"; window.__appLoaded=true;'],
+        '/dep.js':['application/javascript','window.__depLoaded=true;'],
+        '/bg.svg':['image/svg+xml','<svg xmlns="http://www.w3.org/2000/svg"></svg>'],
+        '/photo.svg':['image/svg+xml','<svg xmlns="http://www.w3.org/2000/svg"></svg>']
+      };
+      const body=resources[pathname];
+      return route.fulfill({status:200,
+        contentType:body?.[0]||'text/html',body:body?.[1]||html});
+    });
+    await page.goto('https://snapshot.example/view');
+    await page.evaluate(()=>{
+      window.__snapshotMenu=null;window.__assetCalls=[];
+      window.GM_registerMenuCommand=(_label,callback)=>window.__snapshotMenu=callback;
+      const assets={
+        '/main.css':['text/css','@import "extra.css"; .content{background:url("/photo.svg")}'],
+        '/extra.css':['text/css','h1{color:blue}'],
+        '/app.js':['application/javascript','import "./dep.js"; window.__appLoaded=true;'],
+        '/dep.js':['application/javascript','window.__depLoaded=true;'],
+        '/bg.svg':['image/svg+xml','<svg xmlns="http://www.w3.org/2000/svg"></svg>'],
+        '/photo.svg':['image/svg+xml','<svg xmlns="http://www.w3.org/2000/svg"></svg>']
+      };
+      window.GM_xmlhttpRequest=options=>{
+        window.__assetCalls.push(options.url);
+        let cancelled=false;
+        const req={abort(){cancelled=true;options.onabort?.()}};
+        setTimeout(()=>{
+          if(cancelled)return;
+          const value=assets[new URL(options.url).pathname];
+          if(!value){options.onload({status:404});return;}
+          options.onload({
+            status:200,response:new TextEncoder().encode(value[1]).buffer,
+            finalUrl:options.url,responseHeaders:'content-type: '+value[0]
+          });
+        },5);
+        return req;
+      };
+    });
+    await page.addScriptTag({content:await file('userscripts/web/page-snapshot/page-snapshot.user.js')});
+    assert.equal(await page.evaluate(()=>window.__assetCalls.length),0,
+      'Snapshot must never fetch on script initialization');
+    assert.equal(await page.evaluate(()=>typeof window.__snapshotMenu),'function');
+    const pending=page.waitForEvent('download',{timeout:35000});
+    await page.evaluate(()=>window.__snapshotMenu());
+    const download=await pending;
+    assert.match(download.suggestedFilename(),/^page-snapshot-.*\.zip$/);
+    const archive=await readFile(await download.path());
+    const files=new Map();
+    let offset=0;
+    while(offset+30<archive.length && archive.readUInt32LE(offset)===0x04034b50){
+      const method=archive.readUInt16LE(offset+8);
+      assert.equal(method,0,'ZIP uses STORE method');
+      const length=archive.readUInt32LE(offset+18);
+      const nameLength=archive.readUInt16LE(offset+26);
+      const extra=archive.readUInt16LE(offset+28);
+      const name=archive.subarray(offset+30,offset+30+nameLength).toString();
+      const start=offset+30+nameLength+extra;
+      files.set(name,archive.subarray(start,start+length));
+      offset=start+length;
+    }
+    assert.equal(archive.readUInt32LE(offset),0x02014b50,
+      'Central directory must follow ZIP entries');
+    assert.ok(files.has('index.html'));
+    assert.ok(files.has('source-dom.html'));
+    assert.ok(files.has('manifest.json'));
+    const manifest=JSON.parse(files.get('manifest.json').toString());
+    assert.equal(manifest.version,'1.0.0');
+    assert.equal(manifest.page,'https://snapshot.example/view');
+    assert.ok(manifest.captured.some(item=>item.url.endsWith('/main.css')));
+    assert.ok(manifest.captured.some(item=>item.url.endsWith('/app.js')));
+    assert.ok(manifest.captured.some(item=>item.url.endsWith('/photo.svg')));
+    const snapshot=files.get('index.html').toString();
+    assert.match(snapshot,/Saved visible DOM/);
+    assert.doesNotMatch(snapshot,/<script\b/i);
+    assert.match(snapshot,/Content-Security-Policy/);
+    assert.match(files.get('source-dom.html').toString(),/\/app\.js/);
+    const css=manifest.captured.find(x=>x.url.endsWith('/main.css'));
+    assert.ok(files.get(css.path).toString().includes('extra.css'));
+    assert.ok(archive.length<5*1024*1024);
+  });
   await run('ChatGPT coexistence: long transcript and streamed DOM churn',async page=>{
     await page.setContent('<main id="conversation"></main>');
     await page.evaluate(()=>{

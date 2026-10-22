@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "sourceRepository": "https://github.com/sguzman/script-monkey",
-  "scope": "Firefox-first migration: scripts 1–5 rebuilt in the repository for review, not installed or enabled in a user browser; 6–10 remain candidates.",
+  "scope": "Five selected Firefox migrations and one new manually launched Page Snapshot ZIP; remaining legacy scripts are candidates. No automatic installation.",
   "scripts": [
     {
       "id": "chatgpt-copy-entire-chat",
@@ -149,6 +149,26 @@
       ],
       "source": "https://github.com/sguzman/script-monkey/blob/main/userscripts/scribd.com/scribd-downloader/scribd-downloader.user.js",
       "status": "candidate"
+    },
+    {
+      "id": "page-snapshot",
+      "site": "web",
+      "title": "Page Snapshot ZIP",
+      "summary": "Manually archive rendered page HTML and retrievable client-side assets into a local ZIP with an incomplete-resource manifest.",
+      "hosts": [
+        "*"
+      ],
+      "source": "https://github.com/sguzman/firefox-scripts/blob/main/userscripts/web/page-snapshot/page-snapshot.user.js",
+      "origin": "native",
+      "scope": "all-pages-manual",
+      "status": "rebuilt",
+      "allowedGrants": [
+        "GM_registerMenuCommand",
+        "GM_xmlhttpRequest"
+      ],
+      "connectHosts": [
+        "*"
+      ]
     }
   ]
 }

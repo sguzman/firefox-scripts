@@ -10,6 +10,10 @@ A script must perform only the selected feature, with a clear activation conditi
 
 Use narrowly scoped event listeners or user-initiated work, not idle periodic scans. No `setInterval`, remote `@require`, dynamic `eval`, or whole-document scraping in the default implementation. If DOM observation is essential, limit its subtree, filter relevant changes, budget processing and dispose the observer at the end of the operation. Each bulk operation needs a maximum count, rate limit, cancellation and timeout. Avoid expensive selectors and repeated allocations against long ChatGPT conversations.
 
+## Explicit broad-permission exception: Page Snapshot ZIP
+
+The standalone `page-snapshot` userscript uses `@match http://*/*`, `@match https://*/*`, and `@connect *` exclusively so an operator can request assets from the current arbitrary page and cross-origin CDNs. This is intentionally **not permitted for other scripts**. The tool must not make any network requests until a direct Tampermonkey menu action, must have visible cancellation and resource/size limits, and may download only to the user's local machine. Preserve the explicit permission notice in its README.
+
 ## Browser stability
 
 No injection across tabs, extension management, browser-profile access, or process control. Minimize site matches and `@grant` permissions. Prefer direct Firefox-compatible browser APIs. Scripts must not run on unrelated hosts. No auto-installation or `@updateURL` / `@downloadURL` until that specific script is approved for release. A script failure must not block the site or leave endless timers.
