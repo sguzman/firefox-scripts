@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ChatGPT Force Text Attachment (Firefox)
 // @namespace    https://github.com/sguzman/firefox-scripts
-// @version      1.0.1
+// @version      1.0.2
 // @description  Show a clipboard-to-text-file control beside the ChatGPT composer.
 // @match        https://chatgpt.com/*
 // @grant        none
@@ -12,8 +12,9 @@
   'use strict';
   if(window.__fxTextAttachment)return;
   const MAX_TEXT=4*1024*1024;
-  const PLUS='#composer-plus-btn,[data-testid="composer-plus-btn"],button[aria-label*="Add files"],button[aria-label*="Attach"]';
-  const PROMPT='#prompt-textarea,[data-testid="prompt-textarea"],[contenteditable="true"][aria-label*="Message"]';
+  const PLUS='#composer-plus-btn,[data-testid="composer-plus-btn"],[data-testid*="composer-plus"],button[aria-label="Add files"],button[aria-label="Add files and more"],button[aria-label*="Attach"]';
+  const PROMPT='#prompt-textarea,[data-testid="prompt-textarea"],[contenteditable="true"][role="textbox"],[contenteditable="true"][aria-label*="Message"],form textarea';
+  const SHELL='#composer-background,[data-testid="composer-background"],[data-testid="composer-input"]';
   let button=null,busy=false,frame=0,disposed=false;
   const style=document.createElement('style');
   style.textContent=[
@@ -35,15 +36,24 @@
     '#fx-text-attachment-button:focus-visible{outline:3px solid #3b82f6!important;outline-offset:2px}'
   ].join('');
   document.head?.append(style);
-  const promptNode=()=>document.querySelector(PROMPT);
-  const plusNode=()=>document.querySelector(PLUS);
+  function visible(node){
+    if(!node?.isConnected)return false;
+    const r=node.getBoundingClientRect();
+    return r.width>0&&r.height>0;
+  }
   function composer(){
-    const prompt=promptNode();
-    if(!prompt?.isConnected)return null;
-    const root=prompt.closest('form')||
-      prompt.closest('[data-testid*="composer"]')||
-      prompt.parentElement;
-    return {prompt,plus:plusNode(),root:root||prompt.parentElement};
+    // A visible + is sufficient: do not require the editor to match a selector.
+    const prompt=Array.from(document.querySelectorAll(PROMPT)).find(visible)||null;
+    const pluses=Array.from(document.querySelectorAll(PLUS)).filter(visible);
+    const form=prompt?.closest('form');
+    const plus=pluses.find(el=>form?.contains(el))||
+      pluses.find(el=>el.closest(SHELL))||pluses[0]||null;
+    if(!plus&&!prompt)return null;
+    const root=plus?.closest('form')||form||plus?.closest(SHELL)||
+      prompt?.closest(SHELL)||plus?.parentElement||prompt?.parentElement;
+    const shell=plus?.closest(SHELL)||plus?.closest('form')||
+      prompt?.closest(SHELL)||form||root;
+    return {plus,prompt,root,shell};
   }
   function ensureButton(){
     if(button)return button;
@@ -66,37 +76,28 @@
     frame=0;if(disposed)return;
     const found=composer();
     if(!found){if(button)button.style.display='none';return;}
+    const anchor=found.plus||found.prompt;
+    if(!visible(anchor)){if(button)button.style.display='none';return;}
     const b=ensureButton();
-    const width=b.offsetWidth||90,plus=found.plus;
-    const ref=(plus?.isConnected?plus:found.prompt).getBoundingClientRect();
-    const promptRect=found.prompt.getBoundingClientRect();
-    if(promptRect.width===0||promptRect.height===0){
-      b.style.display='none';return;
+    const width=b.offsetWidth||90,height=b.offsetHeight||32;
+    const ref=anchor.getBoundingClientRect();
+    const measured=found.shell?.getBoundingClientRect();
+    // A viewport-wide wrapper is not the composer bubble.
+    const shell=measured?.width>0&&measured.width<innerWidth-10&&
+      measured.height>0&&measured.height<innerHeight-10?measured:null;
+    const leftEdge=Math.min(ref.left,shell?.left??ref.left);
+    let x=leftEdge-width-10;
+    let y=ref.top+(ref.height-height)/2;
+    if(x<6){
+      // Never deliberately place the control over the text-entry surface.
+      x=Math.max(6,Math.min(innerWidth-width-6,leftEdge));
+      const above=(shell?.top??ref.top)-height-10;
+      const below=(shell?.bottom??ref.bottom)+10;
+      y=above>=6?above:below+height<=innerHeight-6?below:
+        Math.max(6,Math.min(innerHeight-height-6,ref.top-height-10));
     }
-    const candidates=[];
-    if(plus?.isConnected){
-      candidates.push({x:ref.left-width-10,y:ref.top+(ref.height-32)/2});
-      candidates.push({x:ref.right+10,y:ref.top+(ref.height-32)/2});
-    }
-    // The + button may not exist until a menu opens, or may be outside the
-    // prompt's form. In either case, keep the clipboard control discoverable.
-    candidates.push({x:promptRect.left-width-10,y:promptRect.top+4});
-    candidates.push({x:promptRect.right-width,y:promptRect.top-39});
-    let position=null;
-    for(const p of candidates){
-      if(p.x<5 || p.y<5 || p.x+width>innerWidth-5 || p.y+32>innerHeight-5)continue;
-      const overlaps=p.x+width>promptRect.left&&p.x<promptRect.right&&
-        p.y+32>promptRect.top&&p.y<promptRect.bottom;
-      if(!overlaps){position=p;break;}
-    }
-    if(!position){
-      // Fixed viewport gutter: do not hide merely because the + control
-      // has changed shape or is rendered in a portal.
-      position={x:Math.max(5,innerWidth-width-12),
-        y:Math.max(5,Math.min(innerHeight-37,promptRect.top-40))};
-    }
-    b.style.left=Math.round(position.x)+'px';
-    b.style.top=Math.round(position.y)+'px';
+    b.style.left=Math.round(x)+'px';
+    b.style.top=Math.round(Math.max(6,Math.min(innerHeight-height-6,y)))+'px';
     b.style.display='block';
   }
   function schedule(){if(!frame&&!disposed)frame=requestAnimationFrame(show);}
