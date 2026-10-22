@@ -107,7 +107,7 @@ export async function checkRepository(root = ROOT) {
         entry.hosts.some(host=> !/^(?:\*\.)?[a-z0-9.*-]+$/.test(host)))
       errors.push('missing or invalid explicit allowed hosts: '+label);
     if ((entry.hosts.includes('*') || (entry.connectHosts || []).includes('*')) &&
-        !(entry.id === 'page-snapshot' && entry.scope === 'all-pages-manual'))
+        !(['page-snapshot','source-analysis'].includes(entry.id) && entry.scope === 'all-pages-manual'))
       errors.push('broad permissions require explicit manual snapshot review: '+label);
     const source = `${entry.origin === 'native' ? REPO : SOURCE_REPO}/blob/main/userscripts/${entry.site}/${label}/${label}.user.js`;
     if (entry.source !== source) errors.push('unverified source path: '+label);

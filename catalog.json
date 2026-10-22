@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "sourceRepository": "https://github.com/sguzman/script-monkey",
-  "scope": "Five selected Firefox migrations and one new manually launched Page Snapshot ZIP; remaining legacy scripts are candidates. No automatic installation.",
+  "scope": "Five selected Firefox migrations and two distinct manually launched page-analysis ZIP tools; other legacy userscripts remain candidates. No automatic installation.",
   "scripts": [
     {
       "id": "chatgpt-copy-entire-chat",
@@ -159,6 +159,26 @@
         "*"
       ],
       "source": "https://github.com/sguzman/firefox-scripts/blob/main/userscripts/web/page-snapshot/page-snapshot.user.js",
+      "origin": "native",
+      "scope": "all-pages-manual",
+      "status": "rebuilt",
+      "allowedGrants": [
+        "GM_registerMenuCommand",
+        "GM_xmlhttpRequest"
+      ],
+      "connectHosts": [
+        "*"
+      ]
+    },
+    {
+      "id": "source-analysis",
+      "site": "web",
+      "title": "Source Analysis ZIP",
+      "summary": "Manual lightweight ZIP of rendered DOM, CSS, JavaScript, source maps and WASM; binary assets referenced only.",
+      "hosts": [
+        "*"
+      ],
+      "source": "https://github.com/sguzman/firefox-scripts/blob/main/userscripts/web/source-analysis/source-analysis.user.js",
       "origin": "native",
       "scope": "all-pages-manual",
       "status": "rebuilt",

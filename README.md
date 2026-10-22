@@ -6,7 +6,8 @@ Small, Firefox-first userscripts with independent code, tests, and permissions. 
 
 ### Any website
 
-- **[Page Snapshot ZIP](userscripts/web/page-snapshot/page-snapshot.user.js)** — Manually download a ZIP of the rendered page, accessible client-side assets, and an itemized missing-resource manifest. Requires broad site/CDN permissions; review the [security and completeness notes](userscripts/web/page-snapshot/README.md).
+- **[Page Snapshot ZIP](userscripts/web/page-snapshot/page-snapshot.user.js)** — Full page archive: HTML, CSS, JavaScript, images, fonts and accessible media.
+- **[Source Analysis ZIP](userscripts/web/source-analysis/source-analysis.user.js)** — Faster, code-focused ZIP for Viewsource: DOM, CSS, JavaScript, maps and WASM, without downloading image, font or media binaries.
 
 ### ChatGPT
 
@@ -23,7 +24,7 @@ These scripts have been rebuilt and tested in isolated Firefox environments, but
 
 ## Stability contract
 
-Each script is self-contained, with no `@require` scripts, cross-tab coordination, extension APIs, privileged browser-profile operations, or automatic install/update endpoints. The manually activated Page Snapshot ZIP is the sole explicitly reviewed all-sites / cross-origin-download permission exception. DOM-dependent work is bounded; clipboard and network operations are explicit user actions. A failing operation must not silently modify a composer, copy an incomplete transcript, or repeat an upload.
+Each script is self-contained, with no `@require` scripts, cross-tab coordination, extension APIs, privileged browser-profile operations, or automatic install/update endpoints. Page Snapshot ZIP and Source Analysis ZIP are the only two reviewed, manual-only all-sites / cross-origin-download permission exceptions. DOM-dependent work is bounded; clipboard and network operations are explicit user actions. A failing operation must not silently modify a composer, copy an incomplete transcript, or repeat an upload.
 
 The [safety policy](docs/SAFETY.md) describes correctness, bounded performance, and QA gates. CI runs [static/unit checks](https://github.com/sguzman/firefox-scripts/actions/workflows/ci.yml) and [isolated Firefox integration](https://github.com/sguzman/firefox-scripts/actions/workflows/firefox-isolated.yml). All five synthetic functional scenarios and combined long-conversation stress QA passed on October 21, 2026. **This does not prove compatibility with the live ChatGPT/GitHub DOM or guarantee real-profile browser stability.** No tests touch an existing Firefox profile.
 

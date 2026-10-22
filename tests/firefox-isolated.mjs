@@ -243,6 +243,94 @@ try{
     assert.ok(files.get(css.path).toString().includes('extra.css'));
     assert.ok(archive.length<5*1024*1024);
   });
+  await run('Source Analysis ZIP: code-only resources and honest progress',async page=>{
+    const html='<!doctype html><html><head><title>Source study</title>'+
+      '<link rel="stylesheet" href="/main.css"><script src="/site.js"></script>'+
+      '</head><body><main><h1>Study me</h1><img src="/photo.png">'+
+      '<video poster="/poster.jpg"></video></main></body></html>';
+    await page.route('https://source.example/**',route=>{
+      const path=new URL(route.request().url()).pathname;
+      const fileMap={
+        '/main.css':['text/css','@import "./extra.css"; .x{background:url("/font.woff2")}'],
+        '/extra.css':['text/css','h1{color:blue}'],
+        '/site.js':['application/javascript','import "./dep.js"; //# sourceMappingURL=site.js.map'],
+        '/dep.js':['application/javascript','console.log("dep")'],
+        '/site.js.map':['application/json','{"version":3,"sources":["site.ts"]}'],
+        '/photo.png':['image/png','PNG'],
+        '/poster.jpg':['image/jpeg','JPG'],
+        '/font.woff2':['font/woff2','FONT']
+      };
+      const found=fileMap[path];
+      return route.fulfill({status:200,
+        contentType:found?.[0]||'text/html',body:found?.[1]||html});
+    });
+    await page.goto('https://source.example/workspace');
+    await page.evaluate(()=>{
+      window.__requested=[];window.__sourceMenu=null;
+      window.GM_registerMenuCommand=(_label,handler)=>window.__sourceMenu=handler;
+      const fileMap={
+        '/main.css':['text/css','@import "./extra.css"; .x{background:url("/font.woff2")}'],
+        '/extra.css':['text/css','h1{color:blue}'],
+        '/site.js':['application/javascript','import "./dep.js";\n//# sourceMappingURL=site.js.map'],
+        '/dep.js':['application/javascript','console.log("dep")'],
+        '/site.js.map':['application/json','{"version":3,"sources":["site.ts"]}']
+      };
+      window.GM_xmlhttpRequest=options=>{
+        window.__requested.push(options.url);
+        let cancelled=false;
+        const handle={abort(){cancelled=true;options.onabort?.()}};
+        setTimeout(()=>{
+          if(cancelled)return;
+          const item=fileMap[new URL(options.url).pathname];
+          if(!item)return options.onload({status:404});
+          options.onload({status:200,
+            response:new TextEncoder().encode(item[1]).buffer,
+            responseHeaders:'content-type: '+item[0],finalUrl:options.url});
+        },8);
+        return handle;
+      };
+    });
+    const script=await file('userscripts/web/source-analysis/source-analysis.user.js');
+    await page.addScriptTag({content:script});
+    assert.equal(await page.evaluate(()=>window.__requested.length),0);
+    assert.equal(await page.evaluate(()=>typeof window.__sourceMenu),'function');
+    const d=page.waitForEvent('download',{timeout:20000});
+    await page.evaluate(()=>window.__sourceMenu());
+    const download=await d;
+    assert.match(download.suggestedFilename(),/^source-analysis-.*\.zip$/);
+    const zipBytes=await readFile(await download.path());
+    const contents=new Map();
+    let pos=0;
+    while(pos+30<zipBytes.length && zipBytes.readUInt32LE(pos)===0x04034b50){
+      assert.equal(zipBytes.readUInt16LE(pos+8),0);
+      const length=zipBytes.readUInt32LE(pos+18);
+      const nameLen=zipBytes.readUInt16LE(pos+26);
+      const extra=zipBytes.readUInt16LE(pos+28);
+      const filename=zipBytes.subarray(pos+30,pos+30+nameLen).toString();
+      const begin=pos+30+nameLen+extra;
+      contents.set(filename,zipBytes.subarray(begin,begin+length));
+      pos=begin+length;
+    }
+    assert.equal(zipBytes.readUInt32LE(pos),0x02014b50);
+    assert.ok(contents.has('rendered-dom.html.txt'));
+    assert.ok(contents.has('manifest.json'));
+    const manifest=JSON.parse(contents.get('manifest.json').toString());
+    assert.equal(manifest.version,'1.0.0');
+    assert.equal(manifest.summary.failed,0);
+    assert.ok(manifest.summary.attempted>=4);
+    assert.equal(manifest.summary.attempted,manifest.summary.captured);
+    for(const name of ['main.css','site.js','site.js.map','extra.css','dep.js'])
+      assert.ok(manifest.captured.some(x=>x.url.endsWith('/'+name)),name+' missing');
+    assert.ok(manifest.referencedOnly.some(x=>x.url.endsWith('/photo.png')));
+    const requested=await page.evaluate(()=>window.__requested);
+    assert.ok(requested.length>=5);
+    assert.ok(requested.every(x=>!/\.(?:png|jpg|woff2)$/.test(x)),
+      'Source-only download accidentally fetched binary visuals');
+    assert.ok([...contents.keys()].every(x=>
+      !/\.(?:png|jpg|woff2)$/.test(x)));
+    assert.ok(contents.get('rendered-dom.html.txt').toString().includes('Study me'));
+    assert.ok(zipBytes.length<256*1024);
+  });
   await run('ChatGPT coexistence: long transcript and streamed DOM churn',async page=>{
     await page.setContent('<main id="conversation"></main>');
     await page.evaluate(()=>{

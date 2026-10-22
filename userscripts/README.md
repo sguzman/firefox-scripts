@@ -1,12 +1,13 @@
 # Firefox userscripts
 
-The five selected migrations have been tested with synthetic Firefox pages. Page Snapshot ZIP is a new, separately developed manual tool with its own tests. They have not been installed or released, and live authenticated site behavior remains unverified.
+The five selected migrations have been tested with synthetic Firefox pages. Page Snapshot ZIP and Source Analysis ZIP are separate, manually launched tools with their own tests. They have not been installed or released, and live authenticated site behavior remains unverified.
 
 ## Rebuilt
 
 | Script | Purpose |
 | --- | --- |
-| [Page Snapshot ZIP](web/page-snapshot/) | On-demand ZIP of the current page's rendered HTML and retrievable client assets; requires broad site/CDN permissions |
+| [Page Snapshot ZIP](web/page-snapshot/) | Full page ZIP, including accessible images and media |
+| [Source Analysis ZIP](web/source-analysis/) | Lean code-only ZIP for Viewsource: DOM, CSS, JS, maps and WASM |
 | [ChatGPT Copy Entire Chat](chatgpt.com/chatgpt-copy-entire-chat/) | Export server-proven complete conversation history |
 | [ChatGPT Current Message Jump](chatgpt.com/chatgpt-current-message-jump/) | Navigate long exchanges without covering content |
 | [ChatGPT Force Text Attachment](chatgpt.com/chatgpt-force-text-attachment/) | Attach clipboard text as a file after explicit user action |
