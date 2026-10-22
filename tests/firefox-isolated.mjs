@@ -84,6 +84,22 @@ try{
     await page.waitForFunction(()=>document.querySelector('#chips')?.textContent?.includes('.txt'));
     assert.match(await page.locator('#chips').innerText(),/clipboard-.*\.txt/);
   });
+  await run('Force Text Attachment: plus-only composer, exterior placement',async page=>{
+    await page.setContent('<main><form id="bubble" style="position:fixed;left:470px;bottom:48px;width:520px;height:94px;border-radius:24px;background:#ddd;padding:10px"><button type="button" id="composer-plus-btn" style="width:38px;height:38px">+</button></form></main>');
+    await page.addScriptTag({content:await file('userscripts/chatgpt.com/chatgpt-force-text-attachment/chatgpt-force-text-attachment.user.js')});
+    const clip=page.locator('#fx-text-attachment-button');
+    await clip.waitFor({state:'visible',timeout:5000});
+    const geometry=await page.evaluate(()=>{
+      const b=document.getElementById('fx-text-attachment-button').getBoundingClientRect();
+      const shell=document.getElementById('bubble').getBoundingClientRect();
+      const plus=document.getElementById('composer-plus-btn').getBoundingClientRect();
+      return {right:b.right,shellLeft:shell.left,plusLeft:plus.left,
+        aligned:Math.abs(b.top+b.height/2-(plus.top+plus.height/2))<=2};
+    });
+    assert.ok(geometry.right<=geometry.shellLeft-6,JSON.stringify(geometry));
+    assert.ok(geometry.right<geometry.plusLeft,JSON.stringify(geometry));
+    assert.ok(geometry.aligned,JSON.stringify(geometry));
+  });
   await run('ChatGPT controls: late hydration, missing +, inverse light/dark theme',async page=>{
     await page.emulateMedia({colorScheme:'light'});
     await page.setContent('<main id="late-chat"></main>');
