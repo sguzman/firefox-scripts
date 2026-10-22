@@ -131,7 +131,7 @@ try{
     }));
     assert.equal(actual.reads,1);
     assert.equal(actual.plusClicks,0);
-    assert.match(actual.text,/^clipboard-.*\\.txt$/);
+    assert.match(actual.text,/^clipboard-.*\.txt$/);
     assert.ok(actual.button<actual.bubble);
   });
   await run('Clipboard extension: unavailable upload never clicks + or claims success',async page=>{

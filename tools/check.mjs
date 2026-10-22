@@ -144,7 +144,7 @@ export async function checkRepository(root = ROOT) {
     const manifest=JSON.parse(await readFile(path.join(ext,'manifest.json'),'utf8'));
     const content=await readFile(path.join(ext,'content.js'),'utf8');
     const exact=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
-    if(manifest.manifest_version!==3 || !/^\\d+\\.\\d+\\.\\d+$/.test(manifest.version||''))
+    if(manifest.manifest_version!==3 || !/^\d+\.\d+\.\d+$/.test(manifest.version||''))
       errors.push('extension requires Manifest V3 and semver');
     if(!exact(manifest.permissions,['clipboardRead'])||
        !exact(manifest.host_permissions,['https://chatgpt.com/*']))
@@ -157,7 +157,7 @@ export async function checkRepository(root = ROOT) {
        !exact(scripts[0].js,['content.js'])||
        scripts[0].all_frames!==false)
       errors.push('extension content script scope is not approved');
-    if(/\\bsetInterval\\s*\\(|\\beval\\s*\\(|\\bfetch\\s*\\(|\\bXMLHttpRequest\\b/.test(content))
+    if(/\bsetInterval\s*\(|\beval\s*\(|\bfetch\s*\(|\bXMLHttpRequest\b/.test(content))
       errors.push('extension contains unexpected periodic or network activity');
     for(const name of ['README.md','content.test.mjs'])
       if(!await exists(path.join(ext,name)))
