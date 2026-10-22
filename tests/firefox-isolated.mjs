@@ -316,7 +316,7 @@ try{
     assert.ok(contents.has('manifest.json'));
     const manifest=JSON.parse(contents.get('manifest.json').toString());
     assert.equal(manifest.version,'1.0.0');
-    assert.equal(manifest.summary.failed,0);
+    assert.equal(manifest.summary.failed,0,JSON.stringify(manifest.failed));
     assert.ok(manifest.summary.attempted>=4);
     assert.equal(manifest.summary.attempted,manifest.summary.captured);
     for(const name of ['main.css','site.js','site.js.map','extra.css','dep.js'])
