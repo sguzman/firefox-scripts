@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 const s=await readFile(new URL('./source-analysis.user.js',import.meta.url),'utf8');
-test('v1.0.1 protects inline parsing and stays manual-only',()=>{
-  assert.match(s,/^\/\/ @version\s+1\.0\.1$/m);
+test('v1.0.2 retains safe parsing and adds inverse theme',()=>{
+  assert.match(s,/^\/\/ @version\s+1\.0\.2$/m);
   assert.match(s,/GM_registerMenuCommand\('Download source analysis ZIP',run\)/);
   assert.doesNotMatch(s,/\bsetInterval\s*\(/);
   assert.doesNotMatch(s,/new MutationObserver/);
@@ -46,4 +46,10 @@ test('explicitly declared all-site and CDN scope',()=>{
   assert.match(s,/^\/\/ @match\s+https:\/\/\*\/\*$/m);
   assert.match(s,/^\/\/ @match\s+http:\/\/\*\/\*$/m);
   assert.match(s,/^\/\/ @connect\s+\*$/m);
+});
+
+test('HUD uses inverted system light and dark palettes',()=>{
+ assert.match(s,/prefers-color-scheme:dark/);
+ assert.match(s,/#1b2028/);
+ assert.match(s,/#f8fafc/);
 });

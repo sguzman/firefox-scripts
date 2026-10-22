@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 const script=await readFile(new URL('./page-snapshot.user.js',import.meta.url),'utf8');
 
-test('v1.0.0 is entirely manual; no persistent network interception',()=>{
-  assert.match(script,/^\/\/ @version\s+1\.0\.0$/m);
+test('v1.0.1 is manual with an inverse system theme',()=>{
+  assert.match(script,/^\/\/ @version\s+1\.0\.1$/m);
   assert.match(script,/GM_registerMenuCommand\('Download current page snapshot \(ZIP\)',execute\)/);
   assert.doesNotMatch(script,/\bsetInterval\s*\(/);
   assert.doesNotMatch(script,/\b(?:eval|Function)\s*\(/);
@@ -43,4 +43,10 @@ test('cross-origin capability is disclosed and not automatically triggered',()=>
   assert.match(script,/^\/\/ @match\s+http:\/\/\*\/\*$/m);
   assert.match(script,/^\/\/ @connect\s+\*$/m);
   assert.match(script,/ABSOLUTELY NO network access occurs until the menu command/);
+});
+
+test('HUD uses inverted system light and dark palettes',()=>{
+ assert.match(script,/prefers-color-scheme:dark/);
+ assert.match(script,/#1b2028/);
+ assert.match(script,/#f8fafc/);
 });

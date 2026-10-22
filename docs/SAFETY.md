@@ -14,6 +14,10 @@ Use narrowly scoped event listeners or user-initiated work, not idle periodic sc
 
 The standalone `page-snapshot` and `source-analysis` userscripts use `@match http://*/*`, `@match https://*/*`, and `@connect *` so an operator can request assets from the current arbitrary page and cross-origin CDNs. Both are explicitly manual-only exceptions. These broad permissions are **not permitted for other scripts**. The tool must not make any network requests until a direct Tampermonkey menu action, must have visible cancellation and resource/size limits, and may download only to the user's local machine. Preserve the explicit permission notice in its README.
 
+## HUD contrast
+
+Any userscript with a floating button, notification, or progress panel must track the browser's `prefers-color-scheme` setting with an inverted high-contrast palette: dark controls in light mode and light controls in dark mode. This is visual behavior only; it must not introduce polling or whole-page style scans. Controls must have a safe, predictable fallback placement if ChatGPT changes its DOM.
+
 ## Browser stability
 
 No injection across tabs, extension management, browser-profile access, or process control. Minimize site matches and `@grant` permissions. Prefer direct Firefox-compatible browser APIs. Scripts must not run on unrelated hosts. No auto-installation or `@updateURL` / `@downloadURL` until that specific script is approved for release. A script failure must not block the site or leave endless timers.

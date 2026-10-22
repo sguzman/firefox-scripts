@@ -15,8 +15,8 @@ test('only file rows, explicit click, and cancellation cleanup',()=>{
  assert.doesNotMatch(s,/setInterval\s*\(/);
 });
 
-test('v1.0.1 whitelists both GitHub and raw redirect host',()=>{
- assert.match(s,/^\/\/ @version\s+1\.0\.1$/m);
+test('v1.0.2 retains redirect permissions and adds inverse themes',()=>{
+ assert.match(s,/^\/\/ @version\s+1\.0\.2$/m);
  assert.match(s,/^\/\/ @connect\s+github\.com$/m);
  assert.match(s,/^\/\/ @connect\s+raw\.githubusercontent\.com$/m);
  assert.doesNotMatch(s,/^\/\/ @connect\s+\*$/m);
@@ -28,4 +28,10 @@ test('copy icon is local SVG; Copying state is visible and temporary',()=>{
  assert.match(s,/setButtonState\(b,'copied','Copied'\)/);
  assert.match(s,/setButtonState\(b,'error','Error'\)/);
  assert.match(s,/if\(!b\.isConnected\)return/);
+});
+
+test('HUD uses inverted system light and dark palettes',()=>{
+ assert.match(s,/prefers-color-scheme:dark/);
+ assert.match(s,/#1b2028/);
+ assert.match(s,/#f8fafc/);
 });

@@ -11,7 +11,15 @@ test('reads clipboard only after click, with size and time budgets',()=>{
  assert.doesNotMatch(s,/setInterval\s*\(/);
 });
 test('does not auto-submit, retry uploads, or accept unconfirmed state',()=>{
- assert.match(s,/if\(!confirmed\)throw new Error/);
+ assert.match(s,/if\(!succeeded\)throw Error/);
  assert.match(s,/input\.dispatchEvent\(new Event\('change'/);
  assert.doesNotMatch(s,/\.submit\s*\(|send-button.*click\s*\(/);
+});
+
+test('v1.0.1 supports home-page composer and inverse theme',()=>{
+ assert.match(s,/^\/\/ @version\s+1\.0\.1$/m);
+ assert.match(s,/^\/\/ @match\s+https:\/\/chatgpt\.com\/\*$/m);
+ assert.match(s,/prefers-color-scheme:dark/);
+ assert.match(s,/const candidates=\[\]/);
+ assert.match(s,/observer\.observe\(document\.body/);
 });

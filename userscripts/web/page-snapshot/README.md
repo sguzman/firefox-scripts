@@ -1,6 +1,6 @@
 # Page Snapshot ZIP
 
-**v1.0.0.** A self-contained Firefox/Tampermonkey userscript. Open any HTTP(S) page, then choose **Tampermonkey → Page Snapshot ZIP → Download current page snapshot (ZIP)**. It does absolutely nothing until you select this command.
+**v1.0.1.** A self-contained Firefox/Tampermonkey userscript. Open any HTTP(S) page, then choose **Tampermonkey → Page Snapshot ZIP → Download current page snapshot (ZIP)**. It does absolutely nothing until you select this command.
 
 The locally downloaded ZIP contains:
 
@@ -29,3 +29,5 @@ No automatic browser tab traversal or extension injection is performed. No whole
 A userscript does not have access to server-side application source code, protected internal browser caches, the full network history and POST response bodies, every cross-origin iframe, closed shadow roots, canvas/WebGL buffers, decrypted DRM media, or assets blocked by permissions/CSP. Dynamic SPAs frequently depend on backend APIs and will not become a fully functional offline copy. `index.html` intentionally disables scripts to prevent replaying live actions.
 
 The real Firefox profile is not touched by repository QA. Release suitability depends on isolated browser testing and your own specific page.
+
+Visual controls use the inverse system theme: **dark in light mode, light in dark mode**. Theme changes apply automatically without a refresh.

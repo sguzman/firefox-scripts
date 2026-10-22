@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Source Analysis ZIP (Firefox)
 // @namespace    https://github.com/sguzman/firefox-scripts
-// @version      1.0.1
+// @version      1.0.2
 // @description  Manually download current rendered DOM and accessible CSS, JS, source maps and WASM.
 // @match        https://*/*
 // @match        http://*/*
@@ -178,6 +178,20 @@
       padding:'10px 12px',border:'1px solid GrayText',borderRadius:'8px',
       background:'Canvas',color:'CanvasText',font:'13px system-ui',
       boxShadow:'0 2px 12px #0005',maxWidth:'390px'});
+    const theme=document.createElement('style');
+    theme.textContent=[
+      '#fx-source-analysis-status{background:#1b2028!important;color:#f9fafb!important;',
+      'border-color:#06080c!important;box-shadow:0 2px 12px #0007!important}',
+      '#fx-source-analysis-status button{background:#353c47!important;color:#f9fafb!important;',
+      'border:1px solid #7b8795!important;border-radius:6px!important;',
+      'font:600 12px system-ui!important}',
+      '@media(prefers-color-scheme:dark){#fx-source-analysis-status{',
+      'background:#f8fafc!important;color:#111827!important;',
+      'border-color:#cbd5e1!important;box-shadow:0 2px 12px #0008!important}',
+      '#fx-source-analysis-status button{background:#e2e8f0!important;',
+      'color:#111827!important;border-color:#94a3b8!important}}'
+    ].join('');
+    box.append(theme);
     message.setAttribute('role','status');
     const button=document.createElement('button');
     button.type='button';button.textContent='Cancel';
@@ -327,7 +341,7 @@
         url:x.url,kind:x.kind,reason:x.error||x.status
       }));
       const manifest={
-        format:'firefox-source-analysis-v1',version:'1.0.1',
+        format:'firefox-source-analysis-v1',version:'1.0.2',
         url:at,title:document.title,capturedAt:new Date().toISOString(),
         budgets:LIMIT,summary:counters,
         captured:captured.map(x=>({
@@ -348,7 +362,7 @@
       const entries=[
         ['rendered-dom.html.txt',state.dom],
         ['manifest.json',JSON.stringify(manifest,null,2)],
-        ['README.txt','Source Analysis ZIP v1.0.1\n\n'+
+        ['README.txt','Source Analysis ZIP v1.0.2\n\n'+
           'rendered-dom.html.txt — current rendered HTML (non-executable)\n'+
           'code/ — available JS, CSS, WASM and source maps\n'+
           'manifest.json — sources, failures and binary URL references\n\n'+

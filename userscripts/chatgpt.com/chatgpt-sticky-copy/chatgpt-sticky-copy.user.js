@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ChatGPT Sticky Copy (Firefox)
 // @namespace    https://github.com/sguzman/firefox-scripts
-// @version      1.0.0
+// @version      1.0.1
 // @description  Provide a safe copy control on long visible code and writing blocks.
 // @match        https://chatgpt.com/c/*
 // @match        https://chatgpt.com/g/*/c/*
@@ -18,14 +18,22 @@
   let main=document.querySelector('main'),raf=0,disposed=false,busy=false;
   if(!main)return;
   // Only one floating control exists, regardless of the number of blocks.
+  const style=document.createElement('style');
+  style.textContent=[
+    '#fx-sticky-copy-button{background:#1b2028!important;color:#f9fafb!important;',
+    'border:1px solid #06080c!important;box-shadow:0 2px 8px #0006!important;',
+    'opacity:1!important;visibility:visible!important;font:600 13px system-ui!important}',
+    '@media(prefers-color-scheme:dark){#fx-sticky-copy-button{',
+    'background:#f8fafc!important;color:#111827!important;',
+    'border-color:#cbd5e1!important;box-shadow:0 2px 10px #0007!important}}'
+  ].join('');
+  document.head?.append(style);
   const button=document.createElement('button');
-  button.type='button';button.textContent='Copy';
+  button.type='button';button.id='fx-sticky-copy-button';button.textContent='Copy';
   button.title='Copy the current block';button.setAttribute('aria-label','Copy current code or writing block');
   Object.assign(button.style,{position:'fixed',zIndex:'2147482000',
     display:'none',width:'66px',height:'32px',
-    borderRadius:'8px',border:'1px solid GrayText',
-    color:'CanvasText',background:'Canvas',
-    font:'13px system-ui',cursor:'pointer'});
+    borderRadius:'8px',cursor:'pointer'});
   document.body.append(button);
   const blocks=new Set();
   function scanAdded(nodes) {
@@ -152,7 +160,7 @@
     disposed=true;observer.disconnect();if(raf)cancelAnimationFrame(raf);
     window.removeEventListener('scroll',schedule,true);
     window.removeEventListener('resize',schedule);
-    blocks.clear();button.remove();delete window.__fxStickyCopy;
+    blocks.clear();button.remove();style.remove();delete window.__fxStickyCopy;
   }
   window.addEventListener('pagehide',dispose,{once:true});
   window.__fxStickyCopy={dispose};

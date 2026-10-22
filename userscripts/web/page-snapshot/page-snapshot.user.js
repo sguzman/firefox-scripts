@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Page Snapshot ZIP (Firefox)
 // @namespace    https://github.com/sguzman/firefox-scripts
-// @version      1.0.0
+// @version      1.0.1
 // @description  Manually archive current rendered HTML and accessible client-side resources into a local ZIP.
 // @match        https://*/*
 // @match        http://*/*
@@ -58,6 +58,20 @@
       color:'CanvasText',border:'1px solid GrayText',borderRadius:'9px',
       boxShadow:'0 2px 14px #0005',font:'13px system-ui'
     });
+    const theme=document.createElement('style');
+    theme.textContent=[
+      '#fx-page-snapshot-status{background:#1b2028!important;color:#f9fafb!important;',
+      'border-color:#06080c!important;box-shadow:0 2px 12px #0007!important}',
+      '#fx-page-snapshot-status button{background:#353c47!important;color:#f9fafb!important;',
+      'border:1px solid #7b8795!important;border-radius:6px!important;',
+      'font:600 12px system-ui!important}',
+      '@media(prefers-color-scheme:dark){#fx-page-snapshot-status{',
+      'background:#f8fafc!important;color:#111827!important;',
+      'border-color:#cbd5e1!important;box-shadow:0 2px 12px #0008!important}',
+      '#fx-page-snapshot-status button{background:#e2e8f0!important;',
+      'color:#111827!important;border-color:#94a3b8!important}}'
+    ].join('');
+    panel.append(theme);
     output=document.createElement('span');
     output.setAttribute('role','status');
     const cancel=document.createElement('button');
@@ -369,7 +383,7 @@
       if(location.href!==currentLocation)
         throw Error('Page navigation occurred; snapshot cancelled');
       const manifest={
-        format:'firefox-page-snapshot-v1',version:'1.0.0',
+        format:'firefox-page-snapshot-v1',version:'1.0.1',
         page:currentLocation,capturedAt:new Date().toISOString(),
         title:document.title,origin:location.origin,
         limits:LIMIT,summary,assetCount:state.list.size,

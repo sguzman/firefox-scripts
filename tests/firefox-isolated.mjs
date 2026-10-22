@@ -84,6 +84,52 @@ try{
     await page.waitForFunction(()=>document.querySelector('#chips')?.textContent?.includes('.txt'));
     assert.match(await page.locator('#chips').innerText(),/clipboard-.*\.txt/);
   });
+  await run('ChatGPT controls: late hydration, missing +, inverse light/dark theme',async page=>{
+    await page.emulateMedia({colorScheme:'light'});
+    await page.setContent('<main id="late-chat"></main>');
+    const jump=await file('userscripts/chatgpt.com/chatgpt-current-message-jump/chatgpt-current-message-jump.user.js');
+    const attach=await file('userscripts/chatgpt.com/chatgpt-force-text-attachment/chatgpt-force-text-attachment.user.js');
+    await page.addScriptTag({content:jump});
+    await page.addScriptTag({content:attach});
+    assert.equal(await page.locator('#fx-text-attachment-button').count(),0);
+    await page.evaluate(()=>{
+      const main=document.getElementById('late-chat');
+      const user=document.createElement('article');
+      user.dataset.testid='conversation-turn-1';
+      user.innerHTML='<div data-message-author-role="user">Question</div>';
+      user.style.height='90px';
+      const assistant=document.createElement('article');
+      assistant.dataset.testid='conversation-turn-2';
+      assistant.innerHTML='<div data-message-author-role="assistant">Long response</div>';
+      assistant.style.height='2400px';
+      const composer=document.createElement('form');
+      composer.style.cssText='position:fixed;left:500px;bottom:35px;background:transparent;z-index:3';
+      composer.innerHTML='<textarea id="prompt-textarea" style="width:320px;height:48px"></textarea>';
+      main.append(user,assistant,composer);
+      window.scrollTo(0,420);
+    });
+    const nav=page.locator('#fx-current-message-jump');
+    const clip=page.locator('#fx-text-attachment-button');
+    await page.waitForFunction(()=>document.querySelector('#fx-current-message-jump')?.style.display==='flex');
+    await clip.waitFor({state:'visible',timeout:5000});
+    const light=await page.evaluate(()=>({
+      jump:getComputedStyle(document.querySelector('#fx-current-message-jump button:not([hidden])')).backgroundColor,
+      attach:getComputedStyle(document.querySelector('#fx-text-attachment-button')).backgroundColor
+    }));
+    assert.deepEqual(light,{jump:'rgb(27, 32, 40)',attach:'rgb(27, 32, 40)'});
+    await page.emulateMedia({colorScheme:'dark'});
+    await page.waitForFunction(()=>{
+      const b=document.querySelector('#fx-current-message-jump button:not([hidden])');
+      return b && getComputedStyle(b).backgroundColor==='rgb(248, 250, 252)';
+    });
+    const dark=await page.evaluate(()=>({
+      jump:getComputedStyle(document.querySelector('#fx-current-message-jump button:not([hidden])')).backgroundColor,
+      attach:getComputedStyle(document.querySelector('#fx-text-attachment-button')).backgroundColor
+    }));
+    assert.deepEqual(dark,{jump:'rgb(248, 250, 252)',attach:'rgb(248, 250, 252)'});
+    assert.equal(await nav.locator('button').count(),2);
+    assert.equal(await clip.getAttribute('aria-label'),'Attach clipboard text as a .txt file');
+  });
   await run('Sticky Copy: one proxy, native Copy delegated',async page=>{
     await page.setContent(`<main style="margin:0 auto;width:740px">
       <div class="group"><button aria-label="Copy" id="native">Copy</button>
@@ -229,7 +275,7 @@ try{
     assert.ok(files.has('source-dom.html'));
     assert.ok(files.has('manifest.json'));
     const manifest=JSON.parse(files.get('manifest.json').toString());
-    assert.equal(manifest.version,'1.0.0');
+    assert.equal(manifest.version,'1.0.1');
     assert.equal(manifest.page,'https://snapshot.example/view');
     assert.ok(manifest.captured.some(item=>item.url.endsWith('/main.css')));
     assert.ok(manifest.captured.some(item=>item.url.endsWith('/app.js')));
@@ -315,7 +361,7 @@ try{
     assert.ok(contents.has('rendered-dom.html.txt'));
     assert.ok(contents.has('manifest.json'));
     const manifest=JSON.parse(contents.get('manifest.json').toString());
-    assert.equal(manifest.version,'1.0.1');
+    assert.equal(manifest.version,'1.0.2');
     assert.equal(manifest.summary.failed,0,JSON.stringify(manifest.failed));
     assert.ok(manifest.summary.attempted>=4);
     assert.equal(manifest.summary.attempted,manifest.summary.captured);

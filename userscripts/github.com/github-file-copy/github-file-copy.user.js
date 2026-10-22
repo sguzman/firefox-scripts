@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GitHub File Row Copy (Firefox)
 // @namespace    https://github.com/sguzman/firefox-scripts
-// @version      1.0.1
+// @version      1.0.2
 // @description  Copy a GitHub file from its repository row without opening it.
 // @match        https://github.com/*/*
 // @grant        GM_setClipboard
@@ -32,15 +32,22 @@
   style.id='fx-github-file-copy-css';
   style.textContent=`
     .fx-github-row-copy{cursor:pointer;display:inline-flex;align-items:center;
-      border:1px solid var(--borderColor-default,#888);border-radius:5px;
-      color:var(--fgColor-default,inherit);background:transparent;
+      border:1px solid #06080c!important;border-radius:5px;
+      color:#f9fafb!important;background:#1b2028!important;
+      box-shadow:0 1px 5px #0005!important;
       font:12px system-ui;padding:2px 5px;margin-right:6px;
       justify-content:center;gap:5px;min-width:26px;min-height:23px;
       line-height:1.3;vertical-align:middle}
     .fx-github-row-copy svg{width:15px;height:15px;display:block;flex-shrink:0}
     .fx-github-row-copy[data-state="copying"]{min-width:75px}
     .fx-github-row-copy:focus-visible{outline:2px solid var(--focus-outlineColor,#0969da)}
-    .fx-github-row-copy:disabled{opacity:.6;cursor:wait}
+    .fx-github-row-copy:disabled{opacity:.7;cursor:wait}
+    @media(prefers-color-scheme:dark){
+      .fx-github-row-copy{
+        background:#f8fafc!important;color:#111827!important;
+        border-color:#cbd5e1!important;box-shadow:0 1px 6px #0007!important
+      }
+    }
   `;
   document.head.append(style);
   // Inline icon only: no remote resources, fonts or extra permissions.

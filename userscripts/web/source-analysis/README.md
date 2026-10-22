@@ -1,6 +1,6 @@
 # Source Analysis ZIP
 
-Version **v1.0.1** (initial v1.0.0; corrected inline dependency parsing) — a separate, deliberately lightweight companion to [Page Snapshot ZIP](../page-snapshot/). **The original full snapshot is unchanged.**
+Version **v1.0.2** (initial v1.0.0; corrected inline dependency parsing in v1.0.1) — a separate, deliberately lightweight companion to [Page Snapshot ZIP](../page-snapshot/). **The original full snapshot is unchanged.**
 
 To use: install the `.user.js` in Tampermonkey, open any HTTP(S) page, and choose **Tampermonkey → Source Analysis ZIP → Download source analysis ZIP**. No asset discovery or network request runs before that menu action. The result is a ZIP for your Viewsource research project.
 
@@ -36,3 +36,5 @@ This captures the *current rendered DOM*, not the original HTML response, server
 ## Testing
 
 Source-level checks and a disposable Firefox integration test verify menu-only activation, focused code asset selection, a valid ZIP, progress and no image/font/media downloads. Real authenticated website behavior must still be validated separately; no code is injected into your personal Firefox profile by CI.
+
+Visual controls use the inverse system theme: **dark in light mode, light in dark mode**. Theme changes apply automatically without a refresh.
