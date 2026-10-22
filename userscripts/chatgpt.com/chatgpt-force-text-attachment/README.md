@@ -9,7 +9,3 @@ The clipboard is read only on an explicit click. Text is capped at 4 MiB; upload
 A bounded structural observer watches for late composer mounting and ignores streaming text updates; there is no interval or automatic drag/drop fallback. Modern Firefox may reject clipboard reads until the user grants access. If ChatGPT changes the upload DOM, the operation fails visibly rather than guessing.
 
 Visual controls use the inverse system theme: **dark in light mode, light in dark mode**. Theme changes apply automatically without a refresh.
-
-## Clipboard-read limitation
-
-On Firefox, this Tampermonkey script may display a browser Paste permission prompt or produce a clipboard read error. It cannot bypass Firefox's clipboard permissions by itself. The independently scoped [Firefox Clipboard Attachment extension](../../../../extensions/chatgpt-force-text-attachment/) in this **same** repository requests `clipboardRead` and supports one-click reads. Disable this userscript before manually loading that extension, to avoid two controls.

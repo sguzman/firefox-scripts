@@ -1,6 +1,6 @@
 # Development boundaries
 
-This repository contains independent Firefox userscripts and explicitly approved Firefox extensions in separate directories **within this same repository**. Keep each independent; do not combine entrypoints, permissions, or automatic installation.
+This repository contains independent Firefox userscripts only. Extensions live in their own repositories and are linked from README; never import extension code here.
 
 - Work directly on the existing `main` branch unless a repo-specific instruction explicitly says otherwise.
 - Preserve the legacy `sguzman/script-monkey` repository. Migrate only explicitly selected userscripts.

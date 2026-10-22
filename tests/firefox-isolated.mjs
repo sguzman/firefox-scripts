@@ -100,56 +100,6 @@ try{
     assert.ok(geometry.right<geometry.plusLeft,JSON.stringify(geometry));
     assert.ok(geometry.aligned,JSON.stringify(geometry));
   });
-  await run('Clipboard extension: one click reads text and uploads with no + menu',async page=>{
-    await page.setContent(`<main><form id="bubble" style="position:fixed;left:470px;bottom:48px;width:520px;height:94px;padding:10px">
-      <button id="composer-plus-btn" type="button" style="height:38px;width:38px">+</button>
-      <textarea id="prompt-textarea" style="width:300px;height:50px"></textarea>
-      <input type="file" id="upload" style="display:none">
-      <div id="chips"></div></form></main>`);
-    await page.evaluate(()=>{
-      window.__clipReads=0;window.__plusClicks=0;
-      Object.defineProperty(navigator,'clipboard',{configurable:true,value:{
-        readText:async()=>{window.__clipReads++;return 'Example confidential clipboard text';}
-      }});
-      document.getElementById('composer-plus-btn').onclick=()=>window.__plusClicks++;
-      document.getElementById('upload').onchange=e=>{
-        const tag=document.createElement('span');tag.textContent=e.target.files[0].name;
-        document.getElementById('chips').append(tag);
-      };
-    });
-    await page.addScriptTag({content:await file('extensions/chatgpt-force-text-attachment/content.js')});
-    const b=page.locator('#fx-extension-text-attachment-button');
-    await b.waitFor({state:'visible'});
-    assert.equal(await page.evaluate(()=>window.__clipReads),0);
-    await b.click();
-    await page.waitForFunction(()=>document.querySelector('#chips')?.textContent?.includes('.txt'));
-    const actual=await page.evaluate(()=>({
-      reads:window.__clipReads,plusClicks:window.__plusClicks,
-      text:document.getElementById('upload').files[0].name,
-      button:document.getElementById('fx-extension-text-attachment-button').getBoundingClientRect().right,
-      bubble:document.getElementById('bubble').getBoundingClientRect().left
-    }));
-    assert.equal(actual.reads,1);
-    assert.equal(actual.plusClicks,0);
-    assert.match(actual.text,/^clipboard-.*\.txt$/);
-    assert.ok(actual.button<actual.bubble);
-  });
-  await run('Clipboard extension: unavailable upload never clicks + or claims success',async page=>{
-    await page.setContent('<main><form style="position:fixed;left:470px;bottom:48px;width:520px;height:94px"><button type="button" id="composer-plus-btn" style="width:38px;height:38px">+</button></form></main>');
-    await page.evaluate(()=>{
-      window.__plusClicks=0;
-      document.getElementById('composer-plus-btn').onclick=()=>window.__plusClicks++;
-      Object.defineProperty(navigator,'clipboard',{configurable:true,value:{
-        readText:async()=> 'clipboard sample'
-      }});
-    });
-    await page.addScriptTag({content:await file('extensions/chatgpt-force-text-attachment/content.js')});
-    await page.locator('#fx-extension-text-attachment-button').click();
-    await page.waitForFunction(()=>document.getElementById('fx-extension-text-attachment-toast')?.textContent?.includes('No accessible ChatGPT upload input'));
-    assert.equal(await page.evaluate(()=>window.__plusClicks),0);
-    assert.equal(await page.locator('#fx-extension-text-attachment-toast').innerText(),
-      'No accessible ChatGPT upload input; no attachment attempted');
-  });
   await run('ChatGPT controls: late hydration, missing +, inverse light/dark theme',async page=>{
     await page.emulateMedia({colorScheme:'light'});
     await page.setContent('<main id="late-chat"></main>');
