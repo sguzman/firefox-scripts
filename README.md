@@ -1,6 +1,6 @@
 # firefox-scripts
 
-Small, Firefox-first userscripts with independent code, tests, and permissions. This is **not** an extension repository.
+Small, Firefox-first userscripts and a narrowly scoped clipboard attachment extension, with independent code, tests, and permissions.
 
 ## Userscripts
 
@@ -30,13 +30,17 @@ The [safety policy](docs/SAFETY.md) describes correctness, bounded performance, 
 
 Run locally with `node tools/check.mjs && node --test`. The Firefox test runner is `node tests/firefox-isolated.mjs` after installing Playwright and its Firefox browser in an isolated development environment.
 
-## Browser extensions — external links only
+## Firefox extension (same repository)
 
-Extensions remain separate projects, never contained here. Independent extension repositories have not been confirmed, so the verified links below point to their **legacy source only**:
+- **[ChatGPT Clipboard Attachment](extensions/chatgpt-force-text-attachment/)** — Firefox `clipboardRead` permission removes the extra paste prompt from one-click text attachments. Isolated under `extensions/`; replaces the Tampermonkey Force Text Attachment control **only if manually loaded**. The older userscript remains intact. Temporary testing via Firefox `about:debugging`; normal persistent installation may require Mozilla signing.
+
+## Other legacy browser extensions — references only
+
+These are references to unrelated legacy sources, not additional projects enrolled or moved here:
 
 - [ChatGPT Tab Signal (legacy Chromium source)](https://github.com/sguzman/script-monkey/tree/main/extensions/chatgpt-tab-signal)
 - [Jobflick Bridge (legacy Chromium source)](https://github.com/sguzman/script-monkey/tree/main/extensions/jobflick-bridge)
 
-When an independent public repo exists for an extension, replace its legacy link. Firefox extension development is a later, separate task.
+Neither legacy extension has been migrated. The clipboard extension above is developed in this repository.
 
 Development is directly on `main`. The original [script-monkey](https://github.com/sguzman/script-monkey) repository is left unchanged. MIT license.
