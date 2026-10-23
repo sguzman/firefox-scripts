@@ -15,8 +15,8 @@ test('only file rows, explicit click, and cancellation cleanup',()=>{
  assert.doesNotMatch(s,/setInterval\s*\(/);
 });
 
-test('v1.0.3 retains redirect permissions and adds inverse themes',()=>{
- assert.match(s,/^\/\/ @version\s+1\.0\.3$/m);
+test('v1.0.4 retains redirect permissions and adds inverse themes',()=>{
+ assert.match(s,/^\/\/ @version\s+1\.0\.4$/m);
  assert.match(s,/^\/\/ @connect\s+github\.com$/m);
  assert.match(s,/^\/\/ @connect\s+raw\.githubusercontent\.com$/m);
  assert.doesNotMatch(s,/^\/\/ @connect\s+\*$/m);
@@ -38,9 +38,9 @@ test('HUD uses inverted system light and dark palettes',()=>{
 
 test('React hydration, navigation and updated links keep every file row eligible',()=>{
  assert.match(s,/function validFileLink\(link\)/);
- assert.match(s,/\[data-testid="file-row"\]/);
+ assert.match(s,/host\.insertBefore\(b,link\)/);
  assert.match(s,/observer\.observe\(document\.documentElement/);
- assert.match(s,/node\.querySelector\?\.\(selector\)/);
+ assert.match(s,/record\.target\.closest\?\.\(/);
  assert.match(s,/document\.addEventListener\('turbo:render',navigate\)/);
  assert.match(s,/existing\.dataset\.rawUrl=raw/);
  assert.match(s,/getText\(b\.dataset\.rawUrl\)/);
