@@ -315,7 +315,7 @@ try{
     await page.addScriptTag({
       content:await file('userscripts/github.com/github-file-copy/github-file-copy.user.js')
     });
-    await page.locator('.fx-github-row-copy').waitFor({state:'visible'});
+    await page.locator('.react-directory-row span .fx-github-row-copy').waitFor({state:'visible'});
     // GitHub's actual DOM contains a hidden + visible copy of each file link.
     // v1.0.3 decorated only the hidden copy due to row-level deduplication.
     assert.equal(await page.locator('.react-directory-row span a').evaluate(link=>
@@ -391,25 +391,8 @@ try{
       const response=await page.goto(url,{waitUntil:'domcontentloaded',timeout:30000});
       assert.equal(response?.status(),200,'GitHub must return the public repository');
       await page.locator('a[href*="/blob/"]').first().waitFor({state:'attached',timeout:20000});
-      await page.waitForTimeout(1000);
-      const before=await page.evaluate(()=>{
-        const all=[...document.querySelectorAll('a[href*="/blob/"]')];
-        const vis=a=>a.getClientRects().length>0&&
-          getComputedStyle(a).visibility!=='hidden';
-        return {
-          mainCount:document.querySelectorAll('main').length,
-          total:all.length,
-          mainLinks:document.querySelectorAll('main a[href*="/blob/"]').length,
-          visible:all.filter(vis).length,
-          sample:all.slice(0,8).map(a=>({
-            href:a.getAttribute('href'),
-            visible:vis(a),
-            parent:a.parentElement?.outerHTML.slice(0,300),
-            main:a.closest('main')?.outerHTML.slice(0,200)
-          }))
-        };
-      });
-      console.log('REAL GITHUB DOM BEFORE '+name+': '+JSON.stringify(before));
+      // Allow GitHub React hydration to settle, then verify visible file rows.
+      await page.waitForTimeout(1800);
       // This script was injected at DOMContentLoaded in an isolated browser.
       const counts=await page.evaluate(()=>{
         const visible=a=>a.getClientRects().length>0&&
