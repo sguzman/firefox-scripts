@@ -357,6 +357,16 @@ try{
     });
     await page.locator('.fx-github-row-copy').waitFor({state:'visible'});
     assert.equal(await page.locator('.fx-github-row-copy').count(),1);
+    await page.evaluate(()=>{
+      document.querySelector('main').innerHTML=Array.from({length:405},(_,i)=>
+        '<div data-testid="file-row"><span><a href="/owner/repo/blob/main/file-'+i+
+        '.txt">file-'+i+'.txt</a></span></div>'
+      ).join('');
+    });
+    await page.waitForFunction(()=>
+      document.querySelectorAll('main .fx-github-row-copy').length===405,
+      null,{timeout:10000});
+    assert.equal(await page.locator('main .fx-github-row-copy').count(),405);
   });
   await run('Page Snapshot ZIP: manual trigger, captured assets, valid offline archive',async page=>{
     const html='<!doctype html><html><head><title>Snapshot fixture</title>'+
