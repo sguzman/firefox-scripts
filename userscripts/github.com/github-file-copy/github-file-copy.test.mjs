@@ -45,5 +45,7 @@ test('React hydration, navigation and updated links keep every file row eligible
  assert.match(s,/existing\.dataset\.rawUrl=raw/);
  assert.match(s,/getText\(b\.dataset\.rawUrl\)/);
  assert.match(s,/if\(!isDirectoryPage\(\)\)/);
+ assert.match(s,/const end=Math\.min\(cursor\+LIMIT\.rows,links\.length\)/);
+ assert.match(s,/if\(cursor<links\.length\)/);
  assert.doesNotMatch(s,/^\/\/ @(?:updateURL|downloadURL)\s/m);
 });
