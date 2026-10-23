@@ -6,7 +6,7 @@ A click converts a same-origin `/blob/` URL into GitHub's `/raw/` route. GitHub 
 
 Idle rows show an inline copy icon; while downloading they show **Copying…**, followed briefly by **Copied** or **Error**, and then return to the icon. No remote icon library is loaded.
 
-Bounded resources: 400 directory rows per scan, 2 MiB maximum file text, eight recently fetched files cached per page. Navigation clears the cache; in-flight requests are aborted on pagehide. GitHub file links are recognized across legacy and hydrated directory-row layouts. The script watches React row replacement, root replacement, navigation and relevant attribute changes; it restores controls after hydration without timer polling.
+Bounded resources: 400 directory entries processed per animation-frame slice (continuing until all visible file rows are covered), 2 MiB maximum file text, eight recently fetched files cached per page. Navigation clears the cache; in-flight requests are aborted on pagehide. GitHub file links are recognized across legacy and hydrated directory-row layouts. The script watches React row replacement, root replacement, navigation and relevant attribute changes; it restores controls after hydration without timer polling.
 
 The button is restored on nested repository directories as well as the repository root. Folder rows, README file links, issue lists and pull requests do not gain buttons. A row whose link changes uses the new file URL instead of copying the former file.
 
@@ -20,4 +20,4 @@ Visual controls use the inverse system theme: **dark in light mode, light in dar
 
 ### Regression coverage
 
-Static checks cover the restricted grants, version and DOM recovery guards. The synthetic isolated-Firefox suite tests replacement of the initial GitHub listing with a hydrated file-row layout, all file controls returning, hidden file rows, skipped folders and README links, updated file URLs, clipboard requests, and navigation between repository sections. This is not a claim that GitHub's live authenticated DOM has been verified.
+Static checks cover the restricted grants, version and DOM recovery guards. The synthetic isolated-Firefox suite tests replacement of the initial GitHub listing with a hydrated file-row layout, all file controls returning, hidden file rows, over-400-file directories, skipped folders and README links, updated file URLs, clipboard requests, and navigation between repository sections. This is not a claim that GitHub's live authenticated DOM has been verified.
