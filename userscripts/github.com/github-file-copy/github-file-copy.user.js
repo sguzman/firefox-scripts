@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GitHub File Row Copy (Firefox)
 // @namespace    https://github.com/sguzman/firefox-scripts
-// @version      1.0.2
+// @version      1.0.3
 // @description  Copy a GitHub file from its repository row without opening it.
 // @match        https://github.com/*/*
 // @grant        GM_setClipboard
@@ -14,7 +14,7 @@
 (() => {
   'use strict';
   if(window.__fxGitHubFileCopy) return;
-  const ROW='.react-directory-row .react-directory-filename-column';
+  const ROW='.react-directory-row,[data-testid="file-row"],tr,[role="row"]';
   const LIMIT=Object.freeze({rows:400,cache:8,bytes:2*1024*1024,timeout:12000});
   const cache=new Map(),activeRequests=new Set();
   let frame=0,disposed=false,root=document.querySelector('main')||document.body;
@@ -109,19 +109,41 @@
       activeRequests.add(request);
     });
   }
-  function decorate(column) {
-    if(column.querySelector(':scope > .fx-github-row-copy'))return;
-    const link=column.querySelector('a[href*="/blob/"]');
-    if(!link)return;
-    let url;
-    try{url=rawURL(link.href);}catch{return;}
-    const filename=Array.from(column.children).find(c=>c.contains(link));
-    if(!filename)return;
+  function isDirectoryPage() {
+    const parts=location.pathname.split('/').filter(Boolean);
+    return parts.length===2||(parts.length>=4&&parts[2]==='tree');
+  }
+  function validFileLink(link) {
+    try {
+      const href=new URL(link.href,location.href);
+      const page=location.pathname.split('/').filter(Boolean);
+      const parts=href.pathname.split('/').filter(Boolean);
+      return href.origin===location.origin&&parts.length>=5&&
+        parts[0]===page[0]&&parts[1]===page[1]&&parts[2]==='blob'&&
+        !!rawURL(link.href);
+    } catch { return false; }
+  }
+  function decorate(row,link) {
+    const filename=(link.textContent||'file').trim();
+    const name='Copy contents of '+filename;
+    const raw=rawURL(link.href);
+    const existing=row.querySelector('.fx-github-row-copy');
+    if(existing) {
+      existing.dataset.rawUrl=raw;
+      if(!existing.disabled) existing.setAttribute('aria-label',name);
+      return;
+    }
+    const column=link.closest('.react-directory-filename-column');
+    const holder=column||link.parentElement;
+    const target=column?
+      Array.from(column.children).find(c=>c.contains(link)):
+      link;
+    if(!holder||!target)return;
     const b=document.createElement('button');
     b.type='button';b.className='fx-github-row-copy';
-    const accessibleName='Copy contents of '+(link.textContent||'file').trim();
+    b.dataset.rawUrl=raw;
     b.title='Copy file contents';
-    b.setAttribute('aria-label',accessibleName);
+    b.setAttribute('aria-label',name);
     setButtonState(b,'idle');
     b.addEventListener('click',async e=>{
       e.preventDefault();e.stopPropagation();
@@ -131,7 +153,8 @@
       b.setAttribute('aria-label','Copying file contents');
       setButtonState(b,'copying','Copying…');
       try {
-        const text=await getText(url);
+        // React can reuse a file row without replacing its button.
+        const text=await getText(b.dataset.rawUrl);
         if(typeof GM_setClipboard!=='function')
           throw new Error('Userscript clipboard grant unavailable');
         GM_setClipboard(text,'text');
@@ -145,41 +168,82 @@
           if(!b.isConnected)return;
           b.disabled=false;
           b.title='Copy file contents';
-          b.setAttribute('aria-label',accessibleName);
+          const currentLink=b.closest(ROW)?.querySelector('a[href*="/blob/"]');
+          b.setAttribute('aria-label','Copy contents of '+
+            (currentLink?.textContent||'file').trim());
           setButtonState(b,'idle');
         },1200);
       }
     });
-    column.insertBefore(b,filename);
+    holder.insertBefore(b,target);
   }
   function scan(){
     frame=0;if(disposed)return;
     root=document.querySelector('main')||document.body;
-    // GitHub lists at most a bounded number of rows per pass.
-    for(const col of Array.from(root.querySelectorAll(ROW)).slice(0,LIMIT.rows))
-      decorate(col);
+    if(!root)return;
+    if(!style.isConnected&&document.head)document.head.append(style);
+    if(!isDirectoryPage()){
+      for(const b of Array.from(document.querySelectorAll('.fx-github-row-copy')).slice(0,LIMIT.rows))
+        b.remove();
+      return;
+    }
+    // Only inspect file links inside the current main; never scan the whole
+    // document or act on links in README markdown, issues or PR tables.
+    const seen=new Set();
+    const links=root.querySelectorAll('a[href*="/blob/"]');
+    for(const link of links) {
+      if(seen.size>=LIMIT.rows)break;
+      if(!validFileLink(link))continue;
+      const row=link.closest(ROW);
+      if(!row||row.closest('.markdown-body,#readme,[data-testid="readme"]')||
+         seen.has(row))continue;
+      seen.add(row);
+      decorate(row,link);
+    }
+    // Stale controls must disappear if React reuses a row as a folder.
+    for(const b of root.querySelectorAll('.fx-github-row-copy')) {
+      if(!seen.has(b.closest(ROW)))b.remove();
+    }
   }
   function schedule(){if(!frame&&!disposed)frame=requestAnimationFrame(scan);}
   function relevant(records){
+    const selector='main,.react-directory-row,.react-directory-filename-column,'+
+      '[data-testid="file-row"],a[href*="/blob/"]';
+    let budget=80;
     for(const record of records) {
+      if(--budget<0)break;
+      if(record.type==='attributes') {
+        const el=record.target;
+        if(el.matches?.(selector)&&
+           (el.closest('main')||el.matches('main')))return true;
+        continue;
+      }
       let count=0;
       for(const node of record.addedNodes||[]) {
         if(++count>20)break;
         if(node.nodeType!==1)continue;
-        if(node.matches?.('.react-directory-row,.react-directory-filename-column')||
-          node.querySelector?.('.react-directory-row,.react-directory-filename-column'))
+        if(node.matches?.(selector)||node.querySelector?.(selector))
           return true;
       }
     }
     return false;
   }
+  // Observe the stable document root so a replaced <main> is still seen.
+  // Only qualifying file-row mutations trigger the bounded directory scan.
   const observer=new MutationObserver(records=>{if(relevant(records))schedule();});
-  observer.observe(root,{childList:true,subtree:true});
+  observer.observe(document.documentElement,{
+    childList:true,subtree:true,attributes:true,
+    attributeFilter:['href','class','data-testid']
+  });
   function navigate(){cache.clear();schedule();}
+  document.addEventListener('turbo:before-render',navigate);
+  document.addEventListener('turbo:render',navigate);
   document.addEventListener('turbo:load',navigate);
   window.addEventListener('popstate',navigate);
   function dispose(){
     disposed=true;observer.disconnect();if(frame)cancelAnimationFrame(frame);
+    document.removeEventListener('turbo:before-render',navigate);
+    document.removeEventListener('turbo:render',navigate);
     document.removeEventListener('turbo:load',navigate);
     window.removeEventListener('popstate',navigate);
     for(const request of activeRequests)try{request.abort?.();}catch{}
