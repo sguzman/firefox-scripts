@@ -17,7 +17,7 @@
   const ROW='.react-directory-row,[data-testid="file-row"],tr,[role="row"]';
   const LIMIT=Object.freeze({rows:400,cache:8,bytes:2*1024*1024,timeout:12000});
   const cache=new Map(),activeRequests=new Set();
-  let frame=0,disposed=false,root=document.querySelector('main')||document.body;
+  let frame=0,cursor=0,disposed=false,root=document.querySelector('main')||document.body;
   if(!root)return;
   function rawURL(link) {
     const url=new URL(link,location.href);
@@ -191,8 +191,9 @@
     // document or act on links in README markdown, issues or PR tables.
     const seen=new Set();
     const links=root.querySelectorAll('a[href*="/blob/"]');
-    for(const link of links) {
-      if(seen.size>=LIMIT.rows)break;
+    const end=Math.min(cursor+LIMIT.rows,links.length);
+    for(let i=cursor;i<end;i++) {
+      const link=links[i];
       if(!validFileLink(link))continue;
       const row=link.closest(ROW);
       if(!row||row.closest('.markdown-body,#readme,[data-testid="readme"]')||
@@ -200,12 +201,25 @@
       seen.add(row);
       decorate(row,link);
     }
+    cursor=end;
+    if(cursor<links.length) {
+      // Work through every file in bounded animation-frame slices.
+      frame=requestAnimationFrame(scan);
+      return;
+    }
+    cursor=0;
     // Stale controls must disappear if React reuses a row as a folder.
     for(const b of root.querySelectorAll('.fx-github-row-copy')) {
-      if(!seen.has(b.closest(ROW)))b.remove();
+      const row=b.closest(ROW);
+      const link=row?.querySelector('a[href*="/blob/"]');
+      if(!link||!validFileLink(link))b.remove();
     }
   }
-  function schedule(){if(!frame&&!disposed)frame=requestAnimationFrame(scan);}
+  function schedule(){
+    if(disposed)return;
+    cursor=0;
+    if(!frame)frame=requestAnimationFrame(scan);
+  }
   function relevant(records){
     const selector='main,.react-directory-row,.react-directory-filename-column,'+
       '[data-testid="file-row"],a[href*="/blob/"]';
