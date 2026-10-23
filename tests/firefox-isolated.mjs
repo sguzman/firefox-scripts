@@ -377,6 +377,11 @@ try{
     ['Firefox script directory','https://github.com/sguzman/firefox-scripts/tree/main/userscripts/github.com/github-file-copy',3]
   ]){
     await run('GitHub public page: '+name+' keeps every file copy button',async page=>{
+      const source=await file('userscripts/github.com/github-file-copy/github-file-copy.user.js');
+      // Browser init scripts run in the automation context instead of an
+      // ordinary inline <script>, which GitHub CSP correctly blocks.
+      await page.addInitScript({content:
+        'document.addEventListener("DOMContentLoaded", () => {\n'+source+'\n});'});
       const response=await page.goto(url,{waitUntil:'domcontentloaded',timeout:30000});
       assert.equal(response?.status(),200,'GitHub must return the public repository');
       await page.locator('a[href*="/blob/"]').first().waitFor({state:'attached',timeout:20000});
@@ -399,29 +404,24 @@ try{
         };
       });
       console.log('REAL GITHUB DOM BEFORE '+name+': '+JSON.stringify(before));
-      await page.addScriptTag({
-        content:await file('userscripts/github.com/github-file-copy/github-file-copy.user.js')
-      });
-      const check=()=>{
+      // This script was injected at DOMContentLoaded in an isolated browser.
+      const counts=await page.evaluate(()=>{
+        const visible=a=>a.getClientRects().length>0&&
+          getComputedStyle(a).visibility!=='hidden';
         const links=[...document.querySelectorAll('main a[href*="/blob/"]')]
           .filter(link=>!link.closest('.markdown-body,#readme,[data-testid="readme"],'+
             'nav,aside,[role="navigation"],[data-testid="readme-file"]'));
         const matched=links.filter(link=>link.previousElementSibling
           ?.classList.contains('fx-github-row-copy')).length;
-        return {eligible:links.length,matched};
-      };
-      await page.waitForFunction(minimum=>{
-        const links=[...document.querySelectorAll('main a[href*="/blob/"]')]
-          .filter(link=>!link.closest('.markdown-body,#readme,[data-testid="readme"],'+
-            'nav,aside,[role="navigation"],[data-testid="readme-file"]'));
-        return links.length>=minimum && links.every(link=>link.previousElementSibling
-          ?.classList.contains('fx-github-row-copy'));
-      },minimumFiles,{timeout:15000});
-      await page.waitForTimeout(1800);
-      const counts=await page.evaluate(check);
-      assert.ok(counts.eligible>=minimumFiles,JSON.stringify(counts));
-      assert.equal(counts.matched,counts.eligible,JSON.stringify(counts));
-      console.log('GitHub public DOM '+name+': '+JSON.stringify(counts));
+        const visibleLinks=links.filter(visible);
+        const visibleMatched=visibleLinks.filter(link=>link.previousElementSibling
+          ?.classList.contains('fx-github-row-copy')).length;
+        return {eligible:links.length,matched,visible:visibleLinks.length,
+          visibleMatched};
+      });
+      console.log('REAL GITHUB DOM AFTER '+name+': '+JSON.stringify(counts));
+      assert.ok(counts.visible>=minimumFiles,JSON.stringify(counts));
+      assert.equal(counts.visibleMatched,counts.visible,JSON.stringify(counts));
     });
   }
   await run('Page Snapshot ZIP: manual trigger, captured assets, valid offline archive',async page=>{
