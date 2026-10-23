@@ -379,7 +379,26 @@ try{
     await run('GitHub public page: '+name+' keeps every file copy button',async page=>{
       const response=await page.goto(url,{waitUntil:'domcontentloaded',timeout:30000});
       assert.equal(response?.status(),200,'GitHub must return the public repository');
-      await page.locator('main a[href*="/blob/"]').first().waitFor({timeout:20000});
+      await page.locator('a[href*="/blob/"]').first().waitFor({state:'attached',timeout:20000});
+      await page.waitForTimeout(1000);
+      const before=await page.evaluate(()=>{
+        const all=[...document.querySelectorAll('a[href*="/blob/"]')];
+        const vis=a=>a.getClientRects().length>0&&
+          getComputedStyle(a).visibility!=='hidden';
+        return {
+          mainCount:document.querySelectorAll('main').length,
+          total:all.length,
+          mainLinks:document.querySelectorAll('main a[href*="/blob/"]').length,
+          visible:all.filter(vis).length,
+          sample:all.slice(0,8).map(a=>({
+            href:a.getAttribute('href'),
+            visible:vis(a),
+            parent:a.parentElement?.outerHTML.slice(0,300),
+            main:a.closest('main')?.outerHTML.slice(0,200)
+          }))
+        };
+      });
+      console.log('REAL GITHUB DOM BEFORE '+name+': '+JSON.stringify(before));
       await page.addScriptTag({
         content:await file('userscripts/github.com/github-file-copy/github-file-copy.user.js')
       });
