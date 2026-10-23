@@ -290,6 +290,74 @@ try{
     assert.deepEqual(await page.evaluate(()=>window.__rawReads),
       ['https://github.com/owner/repo/raw/main/file.txt']);
   });
+  await run('GitHub File Row Copy: React hydration and directory navigation',async page=>{
+    const initial='<!doctype html><html><head></head><body><main>'+
+      '<div class="react-directory-row"><div class="react-directory-filename-column">'+
+      '<span><a href="/owner/repo/blob/main/original.txt">original.txt</a></span>'+
+      '</div></div></main></body></html>';
+    await page.route('https://github.com/**',route=>route.fulfill({
+      status:200,contentType:'text/html',body:initial
+    }));
+    await page.goto('https://github.com/owner/repo');
+    await page.evaluate(()=>{
+      window.__copied=null;window.__requested=null;
+      window.GM_setClipboard=text=>window.__copied=text;
+      window.GM_xmlhttpRequest=opts=>{
+        window.__requested=opts.url;
+        queueMicrotask(()=>opts.onload({
+          status:200,responseText:'Updated file contents',
+          responseHeaders:'content-type: text/plain'
+        }));
+        return {abort(){}};
+      };
+    });
+    await page.addScriptTag({
+      content:await file('userscripts/github.com/github-file-copy/github-file-copy.user.js')
+    });
+    await page.locator('.fx-github-row-copy').waitFor({state:'visible'});
+    await page.evaluate(()=>{
+      const main=document.createElement('main');
+      main.innerHTML=[
+        '<div data-testid="file-row"><span><a href="/owner/repo/blob/main/Cargo.toml">Cargo.toml</a></span></div>',
+        '<div data-testid="file-row"><span><a href="/owner/repo/blob/main/.gitignore">.gitignore</a></span></div>',
+        '<div data-testid="file-row"><span><a href="/owner/repo/blob/main/README.md">README.md</a></span></div>',
+        '<div data-testid="file-row"><span><a href="/owner/repo/tree/main/crates">crates</a></span></div>',
+        '<div class="markdown-body"><table><tr><td><a href="/owner/repo/blob/main/elsewhere.txt">Readme link</a></td></tr></table></div>'
+      ].join('');
+      document.querySelector('main').replaceWith(main);
+    });
+    await page.waitForFunction(()=>
+      document.querySelectorAll('main .fx-github-row-copy').length===3);
+    assert.equal(await page.locator('main .fx-github-row-copy').count(),3);
+    await page.evaluate(()=>{
+      const link=document.querySelector('[data-testid="file-row"] a');
+      link.href='/owner/repo/blob/main/updated.txt';
+      link.textContent='updated.txt';
+    });
+    await page.waitForFunction(()=>
+      document.querySelector('[data-testid="file-row"] .fx-github-row-copy')
+        ?.dataset.rawUrl==='https://github.com/owner/repo/raw/main/updated.txt');
+    await page.locator('[data-testid="file-row"] .fx-github-row-copy').first().click();
+    await page.waitForFunction(()=>window.__copied==='Updated file contents');
+    assert.equal(await page.evaluate(()=>window.__requested),
+      'https://github.com/owner/repo/raw/main/updated.txt');
+    await page.evaluate(()=>{
+      history.pushState({},'','/owner/repo/issues');
+      dispatchEvent(new PopStateEvent('popstate'));
+    });
+    await page.waitForFunction(()=>
+      document.querySelectorAll('.fx-github-row-copy').length===0);
+    await page.evaluate(()=>{
+      history.pushState({},'','/owner/repo/tree/main/src');
+      document.querySelector('main').innerHTML=
+        '<div data-testid="file-row"><span>'+
+        '<a href="/owner/repo/blob/main/src/lib.rs">lib.rs</a>'+
+        '</span></div>';
+      dispatchEvent(new PopStateEvent('popstate'));
+    });
+    await page.locator('.fx-github-row-copy').waitFor({state:'visible'});
+    assert.equal(await page.locator('.fx-github-row-copy').count(),1);
+  });
   await run('Page Snapshot ZIP: manual trigger, captured assets, valid offline archive',async page=>{
     const html='<!doctype html><html><head><title>Snapshot fixture</title>'+
       '<link rel="stylesheet" href="/main.css">'+
