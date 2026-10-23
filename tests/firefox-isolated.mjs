@@ -293,6 +293,7 @@ try{
   await run('GitHub File Row Copy: rowless hydration and directory navigation',async page=>{
     const initial='<!doctype html><html><head></head><body><main>'+
       '<div class="react-directory-row"><div class="react-directory-filename-column">'+
+      '<div style="display:none"><a href="/owner/repo/blob/main/original.txt">original.txt</a></div>'+
       '<span><a href="/owner/repo/blob/main/original.txt">original.txt</a></span>'+
       '</div></div></main></body></html>';
     await page.route('https://github.com/**',route=>route.fulfill({
@@ -315,6 +316,11 @@ try{
       content:await file('userscripts/github.com/github-file-copy/github-file-copy.user.js')
     });
     await page.locator('.fx-github-row-copy').waitFor({state:'visible'});
+    // GitHub's actual DOM contains a hidden + visible copy of each file link.
+    // v1.0.3 decorated only the hidden copy due to row-level deduplication.
+    assert.equal(await page.locator('.react-directory-row span a').evaluate(link=>
+      link.previousElementSibling?.classList.contains('fx-github-row-copy')),true);
+
     await page.evaluate(()=>{
       const main=document.createElement('main');
       main.innerHTML=[
