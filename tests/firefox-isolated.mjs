@@ -370,6 +370,41 @@ try{
       null,{timeout:10000});
     assert.equal(await page.locator('main .fx-github-row-copy').count(),405);
   });
+  // Public, unauthenticated GitHub pages in a disposable CI Firefox profile.
+  // This catches actual DOM changes that synthetic fixtures cannot predict.
+  for(const [name,url,minimumFiles] of [
+    ['Starbyte root','https://github.com/sguzman/starbyte',4],
+    ['Firefox script directory','https://github.com/sguzman/firefox-scripts/tree/main/userscripts/github.com/github-file-copy',3]
+  ]){
+    await run('GitHub public page: '+name+' keeps every file copy button',async page=>{
+      const response=await page.goto(url,{waitUntil:'domcontentloaded',timeout:30000});
+      assert.equal(response?.status(),200,'GitHub must return the public repository');
+      await page.locator('main a[href*="/blob/"]').first().waitFor({timeout:20000});
+      await page.addScriptTag({
+        content:await file('userscripts/github.com/github-file-copy/github-file-copy.user.js')
+      });
+      const check=()=>{
+        const links=[...document.querySelectorAll('main a[href*="/blob/"]')]
+          .filter(link=>!link.closest('.markdown-body,#readme,[data-testid="readme"],'+
+            'nav,aside,[role="navigation"],[data-testid="readme-file"]'));
+        const matched=links.filter(link=>link.previousElementSibling
+          ?.classList.contains('fx-github-row-copy')).length;
+        return {eligible:links.length,matched};
+      };
+      await page.waitForFunction(minimum=>{
+        const links=[...document.querySelectorAll('main a[href*="/blob/"]')]
+          .filter(link=>!link.closest('.markdown-body,#readme,[data-testid="readme"],'+
+            'nav,aside,[role="navigation"],[data-testid="readme-file"]'));
+        return links.length>=minimum && links.every(link=>link.previousElementSibling
+          ?.classList.contains('fx-github-row-copy'));
+      },minimumFiles,{timeout:15000});
+      await page.waitForTimeout(1800);
+      const counts=await page.evaluate(check);
+      assert.ok(counts.eligible>=minimumFiles,JSON.stringify(counts));
+      assert.equal(counts.matched,counts.eligible,JSON.stringify(counts));
+      console.log('GitHub public DOM '+name+': '+JSON.stringify(counts));
+    });
+  }
   await run('Page Snapshot ZIP: manual trigger, captured assets, valid offline archive',async page=>{
     const html='<!doctype html><html><head><title>Snapshot fixture</title>'+
       '<link rel="stylesheet" href="/main.css">'+
