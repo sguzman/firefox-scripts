@@ -9,14 +9,14 @@ test('raw link is same-origin and uses bounded privileged request',()=>{
  assert.match(s,/rows:400,cache:8,bytes:2\*1024\*1024,timeout:12000/);
 });
 test('only file rows, explicit click, and cancellation cleanup',()=>{
- assert.match(s,/const link=column\.querySelector\('a\[href\*="\/blob\/"\]'\)/);
+ assert.match(s,/const links=root\.querySelectorAll\('a\[href\*="\/blob\/"\]'\)/);
  assert.match(s,/b\.addEventListener\('click',async e=>/);
  assert.match(s,/request\.abort\?\.\(\)/);
  assert.doesNotMatch(s,/setInterval\s*\(/);
 });
 
-test('v1.0.2 retains redirect permissions and adds inverse themes',()=>{
- assert.match(s,/^\/\/ @version\s+1\.0\.2$/m);
+test('v1.0.3 retains redirect permissions and adds inverse themes',()=>{
+ assert.match(s,/^\/\/ @version\s+1\.0\.3$/m);
  assert.match(s,/^\/\/ @connect\s+github\.com$/m);
  assert.match(s,/^\/\/ @connect\s+raw\.githubusercontent\.com$/m);
  assert.doesNotMatch(s,/^\/\/ @connect\s+\*$/m);
@@ -34,4 +34,16 @@ test('HUD uses inverted system light and dark palettes',()=>{
  assert.match(s,/prefers-color-scheme:dark/);
  assert.match(s,/#1b2028/);
  assert.match(s,/#f8fafc/);
+});
+
+test('React hydration, navigation and updated links keep every file row eligible',()=>{
+ assert.match(s,/function validFileLink\(link\)/);
+ assert.match(s,/\[data-testid="file-row"\]/);
+ assert.match(s,/observer\.observe\(document\.documentElement/);
+ assert.match(s,/node\.querySelector\?\.\(selector\)/);
+ assert.match(s,/document\.addEventListener\('turbo:render',navigate\)/);
+ assert.match(s,/existing\.dataset\.rawUrl=raw/);
+ assert.match(s,/getText\(b\.dataset\.rawUrl\)/);
+ assert.match(s,/if\(!isDirectoryPage\(\)\)/);
+ assert.doesNotMatch(s,/^\/\/ @(?:updateURL|downloadURL)\s/m);
 });
