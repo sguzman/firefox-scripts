@@ -290,7 +290,7 @@ try{
     assert.deepEqual(await page.evaluate(()=>window.__rawReads),
       ['https://github.com/owner/repo/raw/main/file.txt']);
   });
-  await run('GitHub File Row Copy: React hydration and directory navigation',async page=>{
+  await run('GitHub File Row Copy: rowless hydration and directory navigation',async page=>{
     const initial='<!doctype html><html><head></head><body><main>'+
       '<div class="react-directory-row"><div class="react-directory-filename-column">'+
       '<span><a href="/owner/repo/blob/main/original.txt">original.txt</a></span>'+
@@ -318,10 +318,10 @@ try{
     await page.evaluate(()=>{
       const main=document.createElement('main');
       main.innerHTML=[
-        '<div data-testid="file-row"><span><a href="/owner/repo/blob/main/Cargo.toml">Cargo.toml</a></span></div>',
-        '<div data-testid="file-row"><span><a href="/owner/repo/blob/main/.gitignore">.gitignore</a></span></div>',
-        '<div data-testid="file-row"><span><a href="/owner/repo/blob/main/README.md">README.md</a></span></div>',
-        '<div data-testid="file-row"><span><a href="/owner/repo/tree/main/crates">crates</a></span></div>',
+        '<div class="github-directory-file"><span><a href="/owner/repo/blob/main/Cargo.toml">Cargo.toml</a></span></div>',
+        '<div class="github-directory-file"><span><a href="/owner/repo/blob/main/.gitignore">.gitignore</a></span></div>',
+        '<div class="github-directory-file"><span><a href="/owner/repo/blob/main/README.md">README.md</a></span></div>',
+        '<div class="github-directory-file"><span><a href="/owner/repo/tree/main/crates">crates</a></span></div>',
         '<div class="markdown-body"><table><tr><td><a href="/owner/repo/blob/main/elsewhere.txt">Readme link</a></td></tr></table></div>'
       ].join('');
       document.querySelector('main').replaceWith(main);
@@ -329,15 +329,17 @@ try{
     await page.waitForFunction(()=>
       document.querySelectorAll('main .fx-github-row-copy').length===3);
     assert.equal(await page.locator('main .fx-github-row-copy').count(),3);
+    assert.equal(await page.locator('main .github-directory-file').count(),4);
+
     await page.evaluate(()=>{
-      const link=document.querySelector('[data-testid="file-row"] a');
+      const link=document.querySelector('.github-directory-file a');
       link.href='/owner/repo/blob/main/updated.txt';
       link.textContent='updated.txt';
     });
     await page.waitForFunction(()=>
-      document.querySelector('[data-testid="file-row"] .fx-github-row-copy')
+      document.querySelector('.github-directory-file .fx-github-row-copy')
         ?.dataset.rawUrl==='https://github.com/owner/repo/raw/main/updated.txt');
-    await page.locator('[data-testid="file-row"] .fx-github-row-copy').first().click();
+    await page.locator('.github-directory-file .fx-github-row-copy').first().click();
     await page.waitForFunction(()=>window.__copied==='Updated file contents');
     assert.equal(await page.evaluate(()=>window.__requested),
       'https://github.com/owner/repo/raw/main/updated.txt');
@@ -350,7 +352,7 @@ try{
     await page.evaluate(()=>{
       history.pushState({},'','/owner/repo/tree/main/src');
       document.querySelector('main').innerHTML=
-        '<div data-testid="file-row"><span>'+
+        '<div class="github-directory-file"><span>'+
         '<a href="/owner/repo/blob/main/src/lib.rs">lib.rs</a>'+
         '</span></div>';
       dispatchEvent(new PopStateEvent('popstate'));
@@ -359,7 +361,7 @@ try{
     assert.equal(await page.locator('.fx-github-row-copy').count(),1);
     await page.evaluate(()=>{
       document.querySelector('main').innerHTML=Array.from({length:405},(_,i)=>
-        '<div data-testid="file-row"><span><a href="/owner/repo/blob/main/file-'+i+
+        '<div class="github-directory-file"><span><a href="/owner/repo/blob/main/file-'+i+
         '.txt">file-'+i+'.txt</a></span></div>'
       ).join('');
     });
