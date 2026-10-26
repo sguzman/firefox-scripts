@@ -1,23 +1,26 @@
 # ChatGPT Force Text Attachment
 
-Firefox userscript, **v1.1.0**. The **Clipboard** button is anchored immediately left of the ChatGPT `+` button, outside the composer bubble. A visible `+` suffices even if the prompt editor changes or cannot be found. If the `+` is absent, the prompt field is a fallback anchor. When there is not enough space to the left, placement prefers above or below the composer instead of covering the text box. The button also appears after delayed hydration or navigating from the ChatGPT home page.
+Firefox userscript, **v1.2.0**. The **Clipboard** button remains immediately left of ChatGPT's `+` button, outside the composer. When space is limited, it appears above or below the composer instead of covering the message editor. The script mounts on late hydration.
 
-An explicit button click or **Ctrl+Shift+V** reads clipboard text using Firefox's permission-gated `navigator.clipboard.readText()`, creates a timestamped `.txt` file, and dispatches one upload event to an unambiguous eligible file input. The script checks for the exact filename in the composer before saying "Attached". If the result is ambiguous, it reports unconfirmed and **never retries automatically** or pastes into the prompt. It also refuses to replace files already selected in the upload input.
+## Clipboard access
 
-The clipboard is read only on an explicit click or shortcut. Text is capped at 4 MiB; upload-input discovery is capped at eight 125-ms attempts, and verification at eighteen 200-ms checks. It never sends the ChatGPT message or clears an existing draft.
+- **Ctrl+Shift+V**, anywhere on the ChatGPT page: uses Firefox's **native paste event** to read `event.clipboardData`, avoiding the Firefox paste-permission prompt. The script briefly focuses a disposable offscreen textarea and restores the previous focus/selection. It cancels the native paste before text reaches the draft; **Ctrl+V** still works normally. There is no programmatic clipboard read on this shortcut.
+- **Clipboard button**: one-click attachment remains available. This path calls `navigator.clipboard.readText()`, which may require Firefox's **Paste** approval. This browser security prompt cannot be removed for a normal webpage userscript while retaining a one-click programmatic read.
 
-A bounded structural observer watches for late composer mounting and ignores streaming text updates; there is no interval or automatic drag/drop fallback. Modern Firefox may reject clipboard reads until the user grants access. If ChatGPT changes the upload DOM, the operation fails visibly rather than guessing.
+Both routes create one timestamped plain-text `.txt` file from up to 4 MiB of clipboard text. The script never sends a ChatGPT message or alters the existing draft.
 
-Visual controls use the inverse system theme: **dark in light mode, light in dark mode**. Theme changes apply automatically without a refresh.
+## Upload selection and failure handling
 
-## Page-wide shortcut: Ctrl+Shift+V
+ChatGPT can have several upload inputs simultaneously (documents, images, or other controls). The script chooses a compatible document input deterministically: canonical `#upload-files` or `data-testid="upload-files"` first, then inputs associated with the current composer, labeled file/document inputs, multiple-file inputs, and explicit text-file acceptance. Indistinguishable candidates cause a visible error instead of a blind guess.
 
-Press **Ctrl+Shift+V anywhere in the ChatGPT page**, whether or not the message editor is focused, to attach clipboard text as a timestamped `.txt` file. The script captures the keyboard shortcut at the window level and cancels Firefox's normal **Paste without formatting** action for this chord on this page. Ordinary **Ctrl+V** remains unaffected.
+If the document input is initially unavailable, either control can click ChatGPT's `+` **once** and perform eight bounded 125-ms discovery attempts. The script does not select unknown menu items. It refuses to overwrite an already occupied input. It dispatches `input` and `change` once and waits up to eighteen 200-ms checks for the exact new filename in the composer. It never retries an unconfirmed upload automatically, inserts copied text into the prompt, or submits a message.
 
-Unlike v1.0.3, the shortcut does not require a native `paste` event or read `event.clipboardData`. It calls `navigator.clipboard.readText()` synchronously from the keydown gesture, just like the Clipboard button uses the same permission-gated API on click. The shortcut does **not** automatically open ChatGPT's `+` menu; it requires an already available, unambiguous file input. The button retains its guarded one-click `+` menu fallback.
+If the shortcut cannot obtain a native paste event, its offscreen sink and focus are cleaned up and a visible failure message appears. No clipboard API fallback is attempted, so the shortcut never suddenly produces a permission prompt.
 
-If the page has no composer, Firefox denies clipboard access, text is empty/oversized, the upload input is ambiguous or occupied, or the attachment cannot be confirmed, the script **does not fall back to pasting**. It shows an error and does not send any message. A defensive paste-event guard also cancels stray paste events occurring during the shortcut itself. Repeated shortcut keydown events cannot start duplicate uploads.
+## Updating and verification
 
-This replaces Firefox's normal **Ctrl+Shift+V** paste action on `chatgpt.com`; use **Ctrl+V** for ordinary pasting. A browser-level shortcut or extension that intercepts the chord **before** the userscript receives it can still prevent the script from running. Clipboard permission and ChatGPT upload availability remain browser/site constraints.
+**Installed userscripts do not update automatically in this repository.** Replace the installed script in your Firefox userscript manager with the [current `.user.js`](chatgpt-force-text-attachment.user.js). Keep the same `@name` and `@namespace`; do not leave an older version enabled alongside it.
 
-Automated acceptance uses a **disposable, synthetic Firefox environment**, including an unfocused ChatGPT composer, a missing composer, denied clipboard access, a missing input, and an already selected file. This does not establish authenticated live-site compatibility or availability during network outages.
+Static/unit checks and isolated Firefox regression fixtures cover native paste interception, no clipboard permission call on the shortcut, preserving drafts and occupied file inputs, missing composer/upload input, and the canonical document input among multiple candidates. Synthetic tests do not prove authenticated live-site compatibility or actual clipboard behavior in your Firefox profile.
+
+Styles follow the inverse theme: **dark in light mode, light in dark mode**.
