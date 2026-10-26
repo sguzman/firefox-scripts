@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         ChatGPT Force Text Attachment (Firefox)
 // @namespace    https://github.com/sguzman/firefox-scripts
-// @version      1.0.3
-// @description  Show a clipboard-to-text-file control beside the ChatGPT composer.
+// @version      1.1.0
+// @description  Attach clipboard text via a button or page-wide Ctrl+Shift+V shortcut.
 // @match        https://chatgpt.com/*
 // @grant        none
 // @run-at       document-idle
@@ -15,7 +15,7 @@
   const PLUS='#composer-plus-btn,[data-testid="composer-plus-btn"],[data-testid*="composer-plus"],button[aria-label="Add files"],button[aria-label="Add files and more"],button[aria-label*="Attach"]';
   const PROMPT='#prompt-textarea,[data-testid="prompt-textarea"],[contenteditable="true"][role="textbox"],[contenteditable="true"][aria-label*="Message"],form textarea';
   const SHELL='#composer-background,[data-testid="composer-background"],[data-testid="composer-input"]';
-  let button=null,busy=false,frame=0,disposed=false,shortcutAt=0,shortcutEditor=null;
+  let button=null,busy=false,frame=0,disposed=false,shortcutAt=0;
   const style=document.createElement('style');
   style.textContent=[
     '#fx-text-attachment-button{box-sizing:border-box!important;height:32px!important;',
@@ -61,7 +61,7 @@
     button.id='fx-text-attachment-button';button.textContent='Clipboard';
     button.setAttribute('aria-label','Attach clipboard text as a .txt file');
     Object.assign(button.style,{position:'fixed',zIndex:'2147482000'});
-    button.addEventListener('click',()=>void attach());
+    button.addEventListener('click',()=>void attach(true));
     document.body.append(button);
     return button;
   }
@@ -149,23 +149,32 @@
         return true;
     return false;
   }
-  async function attach(pastedText=null){
+  async function attach(allowMenu){
     if(busy)return;
     const found=composer();
-    if(!found)return;
+    if(!found){
+      toast('ChatGPT composer unavailable; no upload attempted',true);
+      return;
+    }
     busy=true;
     if(button){button.disabled=true;button.textContent='Attaching…';}
     try {
-      // A real paste event supplies the text directly; only the button path
-      // uses Firefox's permission-gated navigator.clipboard.readText().
-      if(pastedText===null && !navigator.clipboard?.readText)
+      // Called directly from the click/keydown gesture. Never paste into
+      // the editor, even if Firefox denies clipboard access.
+      if(!navigator.clipboard?.readText)
         throw Error('Firefox clipboard access unavailable; permission may be required');
-      const text=pastedText===null?await navigator.clipboard.readText():pastedText;
-      if(!text)throw Error('Clipboard is empty');
+      const text=await navigator.clipboard.readText();
+      if(!text)throw Error('Clipboard is empty; no upload attempted');
       if(text.length>MAX_TEXT)throw Error('Clipboard exceeds 4 MiB');
       const file=new File([text],filename(),{type:'text/plain'});
-      const input=await findInput(found,pastedText===null);
-      if(!input)throw Error('No unambiguous file upload input found');
+      // ChatGPT may rerender the composer while the clipboard is being read.
+      const current=composer();
+      if(!current)throw Error('ChatGPT composer disappeared; no upload attempted');
+      const input=await findInput(current,allowMenu);
+      if(!input||!eligible(input))
+        throw Error('No unambiguous file upload input found');
+      if(input.files?.length)
+        throw Error('Upload input already has a file; no replacement attempted');
       const transfer=new DataTransfer();transfer.items.add(file);
       input.files=transfer.files;
       input.dispatchEvent(new Event('input',{bubbles:true}));
@@ -183,34 +192,40 @@
       busy=false;if(button){button.disabled=false;button.textContent='Clipboard';}
     }
   }
-  // Ctrl+Shift+V is Firefox's plain-text paste command. Do not cancel
-  // keydown: the browser must deliver a real paste event with clipboardData.
-  // Only override a paste in the ChatGPT editor, for this exact key chord.
-  const PASTE_ARM_MS=1500;
-  function onKeydown(event){
-    if(event.repeat||!event.ctrlKey||!event.shiftKey||event.altKey||
-       event.metaKey||String(event.key).toLowerCase()!=='v')return;
-    const editor=composer()?.prompt;
-    if(!editor||!editor.contains(event.target))return;
-    shortcutAt=performance.now();
-    shortcutEditor=editor;
+  // Capture at the window level so focus in the composer is not required.
+  // Cancelling keydown prevents Firefox's native plain-text paste, including
+  // on a loading or broken page where there is no upload target yet.
+  function shortcut(event){
+    return event.ctrlKey&&event.shiftKey&&!event.altKey&&!event.metaKey&&
+      String(event.key).toLowerCase()==='v';
   }
-  function onPaste(event){
-    const armed=shortcutAt>0 && performance.now()-shortcutAt<=PASTE_ARM_MS;
-    const editor=shortcutEditor;
-    shortcutAt=0;shortcutEditor=null;
-    if(!armed||!editor?.isConnected||!editor.contains(event.target)||
-       !event.cancelable)return;
-    const text=event.clipboardData?.getData('text/plain');
-    if(!text)return; // leave ordinary browser paste behavior untouched
+  function onKeydown(event){
+    if(!shortcut(event))return;
     event.preventDefault();
     event.stopImmediatePropagation();
+    shortcutAt=performance.now();
+    if(event.repeat)return; // repeated keys must still cancel native paste
     if(busy){toast('Attachment already in progress',true);return;}
-    if(text.length>MAX_TEXT){toast('Clipboard exceeds 4 MiB',true);return;}
-    void attach(text);
+    // Unlike the button, the shortcut never opens ChatGPT's '+' menu.
+    void attach(false);
   }
-  document.addEventListener('keydown',onKeydown,true);
-  document.addEventListener('paste',onPaste,true);
+  function onPaste(event){
+    // Defensive guard for a browser that emits paste despite cancelled
+    // keydown. Empty clipboardData must not fall through to the editor.
+    if(shortcutAt===0||performance.now()-shortcutAt>1500)return;
+    if(event.cancelable){
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+    shortcutAt=0;
+  }
+  function onKeyup(event){
+    if(String(event.key).toLowerCase()==='v'||
+       !event.ctrlKey||!event.shiftKey)shortcutAt=0;
+  }
+  window.addEventListener('keydown',onKeydown,true);
+  window.addEventListener('keyup',onKeyup,true);
+  window.addEventListener('paste',onPaste,true);
   // Observe new structural nodes only; streamed text does not schedule
   // composer-layout checks. The watcher is bounded to 32 inserted nodes.
   function relevant(records){
@@ -240,9 +255,10 @@
     window.removeEventListener('resize',schedule);
     window.removeEventListener('scroll',schedule,true);
     window.removeEventListener('popstate',schedule);
-    document.removeEventListener('keydown',onKeydown,true);
-    document.removeEventListener('paste',onPaste,true);
-    shortcutAt=0;shortcutEditor=null;
+    window.removeEventListener('keydown',onKeydown,true);
+    window.removeEventListener('keyup',onKeyup,true);
+    window.removeEventListener('paste',onPaste,true);
+    shortcutAt=0;
     style.remove();button?.remove();
     document.getElementById('fx-text-attachment-toast')?.remove();
     delete window.__fxTextAttachment;
