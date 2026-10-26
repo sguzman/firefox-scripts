@@ -254,6 +254,37 @@ try{
     }));
     assert.deepEqual(result,{uploaded:'Winner',other:0,image:0,draft:'Preserve draft',reads:0});
   });
+  await run('Force Text Attachment: contenteditable caret survives native paste',async page=>{
+    await page.setContent(`<main><form style="position:fixed;left:420px;bottom:50px">
+      <button id="composer-plus-btn" type="button" style="height:40px;width:40px">+</button>
+      <div id="prompt-textarea" role="textbox" contenteditable="true" style="width:300px;height:45px">alpha beta</div>
+      <input type="file" id="upload-files" multiple>
+      <div id="chips"></div></form></main>`);
+    await page.evaluate(()=>{
+      Object.defineProperty(navigator,'clipboard',{configurable:true,value:{
+        readText:async()=>{throw Error('No clipboard permission expected');}
+      }});
+      document.getElementById('upload-files').onchange=e=>{
+        document.getElementById('chips').textContent=e.target.files[0]?.name||'';
+      };
+    });
+    await page.addScriptTag({content:await file('userscripts/chatgpt.com/chatgpt-force-text-attachment/chatgpt-force-text-attachment.user.js')});
+    const outcome=await page.evaluate(()=>{
+      const editor=document.getElementById('prompt-textarea');
+      editor.focus();
+      const selection=window.getSelection();
+      const range=document.createRange();
+      range.setStart(editor.firstChild,6);range.collapse(true);
+      selection.removeAllRanges();selection.addRange(range);
+      editor.dispatchEvent(new KeyboardEvent('keydown',{key:'v',ctrlKey:true,shiftKey:true,bubbles:true,cancelable:true}));
+      const data=new DataTransfer();data.setData('text/plain','Saved attachment');
+      document.activeElement.dispatchEvent(new ClipboardEvent('paste',{clipboardData:data,bubbles:true,cancelable:true}));
+      return {text:editor.textContent,focused:document.activeElement===editor,
+        caret:selection.anchorOffset,reads:0};
+    });
+    assert.deepEqual(outcome,{text:'alpha beta',focused:true,caret:6,reads:0});
+    await page.waitForFunction(()=>document.getElementById('chips')?.textContent?.endsWith('.txt'));
+  });
   await run('ChatGPT controls: late hydration, missing +, inverse light/dark theme',async page=>{
     await page.emulateMedia({colorScheme:'light'});
     await page.setContent('<main id="late-chat"></main>');
