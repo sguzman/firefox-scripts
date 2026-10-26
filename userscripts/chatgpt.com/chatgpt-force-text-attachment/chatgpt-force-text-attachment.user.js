@@ -232,6 +232,12 @@
       if(arm.start!==null&&typeof focus.setSelectionRange==='function'){
         try{focus.setSelectionRange(arm.start,arm.end,arm.direction);}catch{}
       }
+      if(arm.range?.startContainer?.isConnected&&arm.range?.endContainer?.isConnected){
+        try{
+          const selection=window.getSelection();
+          selection?.removeAllRanges();selection?.addRange(arm.range);
+        }catch{}
+      }
     }else pasteSink?.blur();
     if(failed)toast('Firefox did not deliver a paste event; nothing attached',true);
   }
@@ -251,7 +257,10 @@
     pasteArm={focus,
       start:typeof focus?.selectionStart==='number'?focus.selectionStart:null,
       end:typeof focus?.selectionEnd==='number'?focus.selectionEnd:null,
-      direction:focus?.selectionDirection||'none',timer:null};
+      direction:focus?.selectionDirection||'none',
+      range:focus?.isContentEditable&&window.getSelection()?.rangeCount?
+        window.getSelection().getRangeAt(0).cloneRange():null,
+      timer:null};
     ensurePasteSink().focus({preventScroll:true});
     if(document.activeElement!==pasteSink){
       event.preventDefault();event.stopImmediatePropagation();
