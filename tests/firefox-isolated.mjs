@@ -61,7 +61,7 @@ try{
     await page.locator('#fx-current-message-jump button').first().click();
     await page.waitForFunction(()=>window.scrollY<100);
   });
-  await run('Force Text Attachment: one confirmed upload',async page=>{
+  await run('Force Text Attachment: button uses native paste without clipboard API',async page=>{
     await page.setContent(`<main><div style="position:fixed;left:350px;bottom:70px">
       <form style="display:flex;align-items:center;width:520px;gap:40px">
       <button id="composer-plus-btn" type="button">+</button>
@@ -69,8 +69,9 @@ try{
       <input type="file" style="display:none" id="fx-upload">
       <div id="chips"></div></form></div></main>`);
     await page.evaluate(()=>{
+      window.__reads=0;
       Object.defineProperty(navigator,'clipboard',{configurable:true,value:{
-        readText:async()=> 'Synthetic clipboard contents'
+        readText:async()=>{window.__reads++;throw Error('API forbidden');}
       }});
       document.querySelector('#fx-upload').addEventListener('change',e=>{
         const span=document.createElement('span');
@@ -81,7 +82,14 @@ try{
     await page.addScriptTag({content:await file('userscripts/chatgpt.com/chatgpt-force-text-attachment/chatgpt-force-text-attachment.user.js')});
     await page.locator('button[aria-label="Attach clipboard text as a .txt file"]').waitFor({state:'visible'});
     await page.locator('button[aria-label="Attach clipboard text as a .txt file"]').click();
+    const active=await page.evaluate(()=>document.activeElement?.id);
+    assert.equal(active,'fx-text-attachment-paste-target');
+    await page.evaluate(()=>{
+      const data=new DataTransfer();data.setData('text/plain','Synthetic clipboard contents');
+      document.activeElement.dispatchEvent(new ClipboardEvent('paste',{clipboardData:data,bubbles:true,cancelable:true}));
+    });
     await page.waitForFunction(()=>document.querySelector('#chips')?.textContent?.includes('.txt'));
+    assert.equal(await page.evaluate(()=>window.__reads),0);
     assert.match(await page.locator('#chips').innerText(),/clipboard-.*\.txt/);
   });
   await run('Force Text Attachment: plus-only composer, exterior placement',async page=>{
@@ -169,7 +177,7 @@ try{
     assert.deepEqual(result,{keyCancelled:true,draft:'Keep this draft',
       notice:'ChatGPT composer unavailable; no upload attempted',reads:0});
   });
-  await run('Force Text Attachment: denied clipboard API affects one-click button only',async page=>{
+  await run('Force Text Attachment: button never calls blocked clipboard API',async page=>{
     await page.setContent(`<form style="position:fixed;left:420px;bottom:50px">
       <button id="composer-plus-btn" type="button" style="height:40px;width:40px">+</button>
       <textarea id="prompt-textarea" style="height:45px;width:300px">Keep draft</textarea>
@@ -179,7 +187,7 @@ try{
     }}));
     await page.addScriptTag({content:await file('userscripts/chatgpt.com/chatgpt-force-text-attachment/chatgpt-force-text-attachment.user.js')});
     await page.locator('#fx-text-attachment-button').click();
-    await page.waitForFunction(()=>document.getElementById('fx-text-attachment-toast')?.textContent?.includes('Clipboard permission denied'));
+    await page.waitForFunction(()=>document.getElementById('fx-text-attachment-toast')?.textContent?.includes('Now press Ctrl+V'));
     assert.equal(await page.locator('#prompt-textarea').inputValue(),'Keep draft');
     assert.equal(await page.locator('#upload').evaluate(el=>el.files.length),0);
   });
