@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         ChatGPT Force Text Attachment (Firefox)
 // @namespace    https://github.com/sguzman/firefox-scripts
-// @version      1.2.0
-// @description  Attach clipboard text using a native-paste shortcut or permission-gated button.
+// @version      1.3.0
+// @description  Permission-prompt-free clipboard text attachments via native paste; no clipboard API.
 // @match        https://chatgpt.com/*
 // @grant        none
 // @run-at       document-idle
@@ -60,9 +60,9 @@
     button=document.createElement('button');button.type='button';
     button.id='fx-text-attachment-button';button.textContent='Clipboard';
     button.setAttribute('aria-label','Attach clipboard text as a .txt file');
-    button.title='One-click may require Firefox Paste permission; Ctrl+Shift+V avoids it';
+    button.title='No clipboard permission prompts. Click, then press Ctrl+V to attach';
     Object.assign(button.style,{position:'fixed',zIndex:'2147482000'});
-    button.addEventListener('click',()=>void attach(true));
+    button.addEventListener('click',()=>armButtonPaste());
     document.body.append(button);
     return button;
   }
@@ -159,7 +159,7 @@
         return true;
     return false;
   }
-  async function attach(allowMenu,pastedText=null){
+  async function attach(pastedText){
     if(busy)return;
     const found=composer();
     if(!found){
@@ -169,18 +169,16 @@
     busy=true;
     if(button){button.disabled=true;button.textContent='Attaching…';}
     try {
-      // The real keyboard paste event carries clipboardData without a
-      // permission prompt. Only the one-click button uses readText().
-      if(pastedText===null&&!navigator.clipboard?.readText)
-        throw Error('Firefox clipboard access unavailable');
-      const text=pastedText===null?await navigator.clipboard.readText():pastedText;
-      if(!text)throw Error('Clipboard is empty; no upload attempted');
-      if(text.length>MAX_TEXT)throw Error('Clipboard exceeds 4 MiB');
-      const file=new File([text],filename(),{type:'text/plain'});
-      // ChatGPT may rerender the composer while the clipboard is being read.
+      // Deliberately no programmatic clipboard-read APIs or extension clipboard
+      // grants anywhere in this script. Only a real paste event can supply
+      // the text: Firefox must never be asked for clipboard-read permission.
+      if(typeof pastedText!=='string'||!pastedText)
+        throw Error('Native paste had no text; no upload attempted');
+      if(pastedText.length>MAX_TEXT)throw Error('Clipboard exceeds 4 MiB');
+      const file=new File([pastedText],filename(),{type:'text/plain'});
       const current=composer();
       if(!current)throw Error('ChatGPT composer disappeared; no upload attempted');
-      const input=await findInput(current,allowMenu);
+      const input=await findInput(current,true);
       if(!input||!eligible(input))
         throw Error('No unambiguous file upload input found');
       if(input.files?.length)
@@ -241,35 +239,51 @@
     }else pasteSink?.blur();
     if(failed)toast('Firefox did not deliver a paste event; nothing attached',true);
   }
-  function onKeydown(event){
-    if(!shortcut(event))return;
-    if(event.repeat||busy||pasteArm){
-      event.preventDefault();event.stopImmediatePropagation();
-      if(!event.repeat)toast('Attachment already in progress',true);
-      return;
-    }
+  function armPaste(mode){
+    if(busy){toast('Attachment already in progress',true);return false;}
+    if(pasteArm)finishPasteArm();
     if(!composer()){
-      event.preventDefault();event.stopImmediatePropagation();
       toast('ChatGPT composer unavailable; no upload attempted',true);
-      return;
+      return false;
     }
     const focus=document.activeElement;
-    pasteArm={focus,
+    pasteArm={focus,mode,
       start:typeof focus?.selectionStart==='number'?focus.selectionStart:null,
       end:typeof focus?.selectionEnd==='number'?focus.selectionEnd:null,
       direction:focus?.selectionDirection||'none',
       range:focus?.isContentEditable&&window.getSelection()?.rangeCount?
-        window.getSelection().getRangeAt(0).cloneRange():null,
-      timer:null};
+        window.getSelection().getRangeAt(0).cloneRange():null,timer:null};
     ensurePasteSink().focus({preventScroll:true});
     if(document.activeElement!==pasteSink){
-      event.preventDefault();event.stopImmediatePropagation();
       finishPasteArm();
       toast('Could not prepare native paste; no upload attempted',true);
+      return false;
+    }
+    pasteArm.timer=setTimeout(()=>{
+      finishPasteArm();
+      toast('No native paste received; nothing attached',true);
+    },mode==='button'?12000:1000);
+    return true;
+  }
+  function armButtonPaste(){
+    if(armPaste('button'))toast('Now press Ctrl+V to attach (no permission dialog)');
+  }
+  function onKeydown(event){
+    if(!shortcut(event))return;
+    if(event.repeat||busy){
+      event.preventDefault();event.stopImmediatePropagation();
+      if(!event.repeat)toast('Attachment already in progress',true);
       return;
     }
-    pasteArm.timer=setTimeout(()=>finishPasteArm(true),750);
-    // Stop page keyboard handlers but DO NOT cancel the native paste action.
+    if(pasteArm?.mode==='button'){
+      // The button already focused the safe paste target.
+      // Do not cancel the native paste command or read the clipboard.
+      event.stopImmediatePropagation();return;
+    }
+    if(!armPaste('shortcut')){
+      event.preventDefault();event.stopImmediatePropagation();return;
+    }
+    // Never cancel the keyboard's real paste default action.
     event.stopImmediatePropagation();
   }
   function onPaste(event){
@@ -277,7 +291,7 @@
     const text=event.clipboardData?.getData('text/plain')||'';
     event.preventDefault();event.stopImmediatePropagation();
     finishPasteArm();
-    void attach(true,text);
+    void attach(text);
   }
   window.addEventListener('keydown',onKeydown,true);
   window.addEventListener('paste',onPaste,true);
