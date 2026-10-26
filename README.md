@@ -30,13 +30,16 @@ The [safety policy](docs/SAFETY.md) describes correctness, bounded performance, 
 
 Run locally with `node tools/check.mjs && node --test`. The Firefox test runner is `node tests/firefox-isolated.mjs` after installing Playwright and its Firefox browser in an isolated development environment.
 
-## Browser extensions — external links only
+## Firefox project index (living list)
 
-Extensions remain separate projects, never contained here. Independent extension repositories have not been confirmed, so the verified links below point to their **legacy source only**:
+This README is the maintained index of Firefox userscripts and extensions under active development. Keep it updated as projects are added, moved, or retired. The [userscripts above](#userscripts) live in this repository; **standalone WebExtensions stay in their own repositories** and are linked here rather than copied into this one.
 
-- [ChatGPT Tab Signal (legacy Chromium source)](https://github.com/sguzman/script-monkey/tree/main/extensions/chatgpt-tab-signal)
-- [Jobflick Bridge (legacy Chromium source)](https://github.com/sguzman/script-monkey/tree/main/extensions/jobflick-bridge)
+### Standalone Firefox extensions
 
-When an independent public repo exists for an extension, replace its legacy link. Firefox extension development is a later, separate task.
+- **[Chat Signals](https://github.com/sguzman/chat-signals)** — Firefox-first ChatGPT conversation-state observation, tab identity, status indicators, and notifications; optional state-only integration with Chat Queue.
+- **[Jobflick Bridge](https://github.com/sguzman/jobflick-bridge)** — Firefox Developer Edition-first bridge from ChatGPT to local Jobflick jobs, with explicit execution controls and result tracking.
+- **[Chat Queue](https://github.com/sguzman/chat-queue)** — Firefox Developer Edition-first ChatGPT prompt queue and floating HUD; coordinates with authenticated Chat Signals state before advancing queued messages.
+
+These are independent projects at different development and verification stages, **not extensions shipped by firefox-scripts**. See each repository for current status, installation instructions, and limitations. The older [script-monkey](https://github.com/sguzman/script-monkey) extension implementations are legacy reference material, not the current standalone source.
 
 Development is directly on `main`. The original [script-monkey](https://github.com/sguzman/script-monkey) repository is left unchanged. MIT license.
