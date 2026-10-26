@@ -100,7 +100,7 @@ try{
     assert.ok(geometry.right<geometry.plusLeft,JSON.stringify(geometry));
     assert.ok(geometry.aligned,JSON.stringify(geometry));
   });
-  await run('Force Text Attachment: Ctrl+Shift+V attaches one text file without clipboard permission',async page=>{
+  await run('Force Text Attachment: Ctrl+Shift+V anywhere attaches without writing to either editor',async page=>{
     await page.setContent(`<main><form id="composer" style="position:fixed;left:420px;bottom:50px;width:520px;height:95px">
       <button type="button" id="composer-plus-btn" style="width:40px;height:40px">+</button>
       <textarea id="prompt-textarea" style="width:360px;height:48px"></textarea>
@@ -109,7 +109,7 @@ try{
     await page.evaluate(()=>{
       window.__reads=0;window.__plusClicks=0;
       Object.defineProperty(navigator,'clipboard',{configurable:true,value:{
-        readText:async()=>{window.__reads++;throw Error('Clipboard read forbidden');}
+        readText:async()=>{window.__reads++;return 'Synthetic keyboard attachment';}
       }});
       document.getElementById('composer-plus-btn').onclick=()=>window.__plusClicks++;
       document.getElementById('upload').onchange=e=>{
@@ -119,62 +119,113 @@ try{
       };
     });
     await page.addScriptTag({content:await file('userscripts/chatgpt.com/chatgpt-force-text-attachment/chatgpt-force-text-attachment.user.js')});
-    const outcome=await page.evaluate(()=>{
-      const editor=document.getElementById('prompt-textarea');
-      const other=document.getElementById('elsewhere');
-      const paste=(target,text,shift=true)=>{
-        target.focus();
-        target.dispatchEvent(new KeyboardEvent('keydown',{
-          key:'v',ctrlKey:true,shiftKey:shift,bubbles:true,cancelable:true
-        }));
-        // Synthetic ClipboardEvent does not preserve constructor clipboardData
-        // consistently in Firefox. Supply a deterministic paste-event payload.
-        const event=new Event('paste',{bubbles:true,cancelable:true});
-        Object.defineProperty(event,'clipboardData',{value:{
-          getData:type=>type==='text/plain'?text:''
-        }});
-        target.dispatchEvent(event);
-        return event.defaultPrevented;
-      };
-      const ordinary=paste(editor,'regular paste',false);
-      const outside=paste(other,'outside paste',true);
-      const shortcut=paste(editor,'Synthetic keyboard attachment',true);
-      return {ordinary,outside,shortcut};
+    const ordinary=await page.evaluate(()=>{
+      const event=new KeyboardEvent('keydown',{key:'v',ctrlKey:true,bubbles:true,cancelable:true});
+      document.getElementById('elsewhere').dispatchEvent(event);
+      return event.defaultPrevented;
     });
-    assert.deepEqual(outcome,{ordinary:false,outside:false,shortcut:true});
+    assert.equal(ordinary,false,'ordinary Ctrl+V must remain available');
+    await page.locator('#elsewhere').focus();
+    await page.keyboard.press('Control+Shift+V');
     await page.waitForFunction(()=>document.getElementById('chips')?.textContent?.endsWith('.txt'));
     const result=await page.evaluate(async()=>({
       reads:window.__reads,plusClicks:window.__plusClicks,
       text:await document.getElementById('upload').files[0].text(),
       editor:document.getElementById('prompt-textarea').value,
+      elsewhere:document.getElementById('elsewhere').value,
       fileCount:document.getElementById('upload').files.length
     }));
-    assert.deepEqual(result,{reads:0,plusClicks:0,text:'Synthetic keyboard attachment',editor:'',fileCount:1});
+    assert.deepEqual(result,{reads:1,plusClicks:0,text:'Synthetic keyboard attachment',
+      editor:'',elsewhere:'Other editor',fileCount:1});
   });
-  await run('Force Text Attachment: shortcut does not invoke upload menu without input',async page=>{
+  await run('Force Text Attachment: no composer cancels native paste and reports unavailable',async page=>{
+    await page.setContent('<main><textarea id="elsewhere">Keep this draft</textarea></main>');
+    await page.evaluate(()=>{
+      window.__reads=0;
+      Object.defineProperty(navigator,'clipboard',{configurable:true,value:{
+        readText:async()=>{window.__reads++;return 'Must not insert';}
+      }});
+    });
+    await page.addScriptTag({content:await file('userscripts/chatgpt.com/chatgpt-force-text-attachment/chatgpt-force-text-attachment.user.js')});
+    const result=await page.evaluate(()=>{
+      const field=document.getElementById('elsewhere');
+      const key=new KeyboardEvent('keydown',{key:'v',ctrlKey:true,shiftKey:true,
+        bubbles:true,cancelable:true});
+      field.dispatchEvent(key);
+      const paste=new Event('paste',{bubbles:true,cancelable:true});
+      Object.defineProperty(paste,'clipboardData',{value:{getData:()=>''}});
+      field.dispatchEvent(paste);
+      field.dispatchEvent(new KeyboardEvent('keyup',{key:'v',bubbles:true}));
+      return {keyCancelled:key.defaultPrevented,pasteCancelled:paste.defaultPrevented,
+        draft:field.value,notice:document.getElementById('fx-text-attachment-toast')?.textContent,
+        reads:window.__reads};
+    });
+    assert.deepEqual(result,{keyCancelled:true,pasteCancelled:true,
+      draft:'Keep this draft',notice:'ChatGPT composer unavailable; no upload attempted',reads:0});
+  });
+  await run('Force Text Attachment: clipboard denial cancels native paste without draft damage',async page=>{
+    await page.setContent(`<form style="position:fixed;left:420px;bottom:50px">
+      <button id="composer-plus-btn" type="button" style="height:40px;width:40px">+</button>
+      <textarea id="prompt-textarea" style="height:45px;width:300px">Keep draft</textarea>
+      <input type="file" id="upload"></form>`);
+    await page.evaluate(()=>{
+      Object.defineProperty(navigator,'clipboard',{configurable:true,value:{
+        readText:async()=>{throw Error('Clipboard permission denied');}
+      }});
+    });
+    await page.addScriptTag({content:await file('userscripts/chatgpt.com/chatgpt-force-text-attachment/chatgpt-force-text-attachment.user.js')});
+    const result=await page.evaluate(()=>{
+      const editor=document.getElementById('prompt-textarea');
+      const key=new KeyboardEvent('keydown',{key:'v',ctrlKey:true,shiftKey:true,
+        bubbles:true,cancelable:true});
+      editor.dispatchEvent(key);
+      const paste=new Event('paste',{bubbles:true,cancelable:true});
+      Object.defineProperty(paste,'clipboardData',{value:{getData:()=>''}});
+      editor.dispatchEvent(paste);
+      editor.dispatchEvent(new KeyboardEvent('keyup',{key:'v',bubbles:true}));
+      return {keyCancelled:key.defaultPrevented,pasteCancelled:paste.defaultPrevented};
+    });
+    assert.deepEqual(result,{keyCancelled:true,pasteCancelled:true});
+    await page.waitForFunction(()=>document.getElementById('fx-text-attachment-toast')?.textContent?.includes('Clipboard permission denied'));
+    assert.equal(await page.locator('#prompt-textarea').inputValue(),'Keep draft');
+    assert.equal(await page.locator('#upload').evaluate(el=>el.files.length),0);
+  });
+  await run('Force Text Attachment: shortcut does not open upload menu without input',async page=>{
     await page.setContent('<main><form style="position:fixed;left:420px;bottom:50px;width:520px;height:95px"><button id="composer-plus-btn" type="button" style="height:40px;width:40px">+</button><textarea id="prompt-textarea" style="height:45px;width:300px"></textarea></form></main>');
     await page.evaluate(()=>{
       window.__plus=0;
       document.getElementById('composer-plus-btn').onclick=()=>window.__plus++;
       Object.defineProperty(navigator,'clipboard',{configurable:true,value:{
-        readText:async()=>{throw Error('Should not read clipboard');}
+        readText:async()=> 'Synthetic attachment'
       }});
     });
     await page.addScriptTag({content:await file('userscripts/chatgpt.com/chatgpt-force-text-attachment/chatgpt-force-text-attachment.user.js')});
-    const prevented=await page.evaluate(()=>{
-      const editor=document.getElementById('prompt-textarea');
-      editor.focus();
-      editor.dispatchEvent(new KeyboardEvent('keydown',{key:'v',ctrlKey:true,shiftKey:true,bubbles:true}));
-      const ev=new Event('paste',{bubbles:true,cancelable:true});
-      Object.defineProperty(ev,'clipboardData',{value:{
-        getData:type=>type==='text/plain'?'Sample':''
-      }});
-      editor.dispatchEvent(ev);
-      return ev.defaultPrevented;
-    });
-    assert.equal(prevented,true);
+    await page.locator('#prompt-textarea').focus();
+    await page.keyboard.press('Control+Shift+V');
     await page.waitForFunction(()=>document.getElementById('fx-text-attachment-toast')?.textContent?.includes('No unambiguous file upload input'));
     assert.equal(await page.evaluate(()=>window.__plus),0);
+    assert.equal(await page.locator('#prompt-textarea').inputValue(),'');
+  });
+  await run('Force Text Attachment: an occupied file input is not overwritten',async page=>{
+    await page.setContent(`<form style="position:fixed;left:420px;bottom:50px">
+      <button id="composer-plus-btn" type="button" style="height:40px;width:40px">+</button>
+      <textarea id="prompt-textarea" style="height:45px;width:300px"></textarea>
+      <input type="file" id="upload"></form>`);
+    await page.evaluate(()=>{
+      const transfer=new DataTransfer();
+      transfer.items.add(new File(['Existing attachment'],'existing.txt',{type:'text/plain'}));
+      document.getElementById('upload').files=transfer.files;
+      Object.defineProperty(navigator,'clipboard',{configurable:true,value:{
+        readText:async()=> 'New content'
+      }});
+    });
+    await page.addScriptTag({content:await file('userscripts/chatgpt.com/chatgpt-force-text-attachment/chatgpt-force-text-attachment.user.js')});
+    await page.keyboard.press('Control+Shift+V');
+    await page.waitForFunction(()=>document.getElementById('fx-text-attachment-toast')?.textContent?.includes('no replacement attempted'));
+    const selected=await page.locator('#upload').evaluate(async input=>({
+      count:input.files.length,name:input.files[0]?.name,text:await input.files[0]?.text()
+    }));
+    assert.deepEqual(selected,{count:1,name:'existing.txt',text:'Existing attachment'});
   });
   await run('ChatGPT controls: late hydration, missing +, inverse light/dark theme',async page=>{
     await page.emulateMedia({colorScheme:'light'});
