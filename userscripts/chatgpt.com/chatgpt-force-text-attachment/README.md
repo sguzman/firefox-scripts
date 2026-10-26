@@ -1,26 +1,26 @@
 # ChatGPT Force Text Attachment
 
-Firefox userscript, **v1.2.0**. The **Clipboard** button remains immediately left of ChatGPT's `+` button, outside the composer. When space is limited, it appears above or below the composer instead of covering the message editor. The script mounts on late hydration.
+Firefox userscript, **v1.3.0**. This release removes **all programmatic clipboard reading**, including from the floating Clipboard button. No `navigator.clipboard.readText()`, userscript clipboard-read grants, or other clipboard-read API exists in this script.
 
-## Clipboard access
+## How to attach without a Firefox Paste permission dialog
 
-- **Ctrl+Shift+V**, anywhere on the ChatGPT page: uses Firefox's **native paste event** to read `event.clipboardData`, avoiding the Firefox paste-permission prompt. The script briefly focuses a disposable offscreen textarea and restores the previous focus/selection. It cancels the native paste before text reaches the draft; **Ctrl+V** still works normally. There is no programmatic clipboard read on this shortcut.
-- **Clipboard button**: one-click attachment remains available. This path calls `navigator.clipboard.readText()`, which may require Firefox's **Paste** approval. This browser security prompt cannot be removed for a normal webpage userscript while retaining a one-click programmatic read.
+- **Ctrl+Shift+V** anywhere on the ChatGPT page: a genuine native paste event supplies the clipboard text directly to the script, which turns it into a timestamped `.txt` attachment. The native paste is intercepted before it can overwrite the message draft. Ordinary **Ctrl+V** works normally.
+- **Clipboard button**: click **Clipboard**, then press **Ctrl+V**. This two-step route is necessary for the userscript to access text without calling Firefox's permission-gated clipboard-read API. The button cannot read the clipboard silently from a single click. The capture expires after 12 seconds.
 
-Both routes create one timestamped plain-text `.txt` file from up to 4 MiB of clipboard text. The script never sends a ChatGPT message or alters the existing draft.
+Both routes use a disposable offscreen paste target and restore prior editor focus, text selection, and contenteditable caret. On upload failure, the script never pastes text into the composer, submits a ChatGPT message, or retries automatically.
 
-## Upload selection and failure handling
+## Upload constraints
 
-ChatGPT can have several upload inputs simultaneously (documents, images, or other controls). The script chooses a compatible document input deterministically: canonical `#upload-files` or `data-testid="upload-files"` first, then inputs associated with the current composer, labeled file/document inputs, multiple-file inputs, and explicit text-file acceptance. Indistinguishable candidates cause a visible error instead of a blind guess.
+Text is capped at 4 MiB. ChatGPT can mount several file inputs, so the script ranks a known documents input (`#upload-files` or `data-testid="upload-files"`), current-composer inputs, labeled file/document inputs, and accept-type eligibility. Indistinguishable inputs are rejected rather than guessed.
 
-If the document input is initially unavailable, either control can click ChatGPT's `+` **once** and perform eight bounded 125-ms discovery attempts. The script does not select unknown menu items. It refuses to overwrite an already occupied input. It dispatches `input` and `change` once and waits up to eighteen 200-ms checks for the exact new filename in the composer. It never retries an unconfirmed upload automatically, inserts copied text into the prompt, or submits a message.
+Input discovery checks up to eight times at 125 ms. It may open the ChatGPT `+` menu **once**, but does not choose unknown menu items. Existing selected files are never replaced. After dispatching a single upload `change` event, it polls eighteen times at 200 ms for the generated filename; otherwise it reports an unconfirmed attachment.
 
-If the shortcut cannot obtain a native paste event, its offscreen sink and focus are cleaned up and a visible failure message appears. No clipboard API fallback is attempted, so the shortcut never suddenly produces a permission prompt.
+## Install/update
 
-## Updating and verification
+**[Install or replace the userscript](https://raw.githubusercontent.com/sguzman/firefox-scripts/main/userscripts/chatgpt.com/chatgpt-force-text-attachment/chatgpt-force-text-attachment.user.js)**.
 
-**Installed userscripts do not update automatically in this repository.** Replace the installed script in your Firefox userscript manager with the [current `.user.js`](chatgpt-force-text-attachment.user.js). Keep the same `@name` and `@namespace`; do not leave an older version enabled alongside it.
+The new script retains the same `@name` and `@namespace` as v1.2.0. **Reload ChatGPT after updating.** Tampermonkey can have another similarly named userscript installed from the older `sguzman/script-monkey` repository: **ChatGPT - Force Text Attachment** (v0.6.2). That legacy script still calls the permission-gated clipboard API. Disable it if both are installed, so only **ChatGPT Force Text Attachment (Firefox)** v1.3.0 remains enabled for ChatGPT.
 
-Static/unit checks and isolated Firefox regression fixtures cover native paste interception, no clipboard permission call on the shortcut, preserving drafts and occupied file inputs, missing composer/upload input, and the canonical document input among multiple candidates. Synthetic tests do not prove authenticated live-site compatibility or actual clipboard behavior in your Firefox profile.
+The newer script has no clipboard-read code, but an older userscript or another extension can independently invoke Firefox's permission-gated API and show the same dialog. The repository's automated synthetic Firefox tests do not prove that this local browser configuration has no competing script.
 
-Styles follow the inverse theme: **dark in light mode, light in dark mode**.
+The button mounts beside the ChatGPT composer and is styled inversely to the browser theme.
