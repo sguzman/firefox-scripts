@@ -39,6 +39,7 @@ This README is the maintained index of Firefox userscripts and extensions under 
 - **[Chat Signals](https://github.com/sguzman/chat-signals)** — Firefox-first ChatGPT conversation-state observation, tab identity, status indicators, and notifications; optional state-only integration with Chat Queue.
 - **[Jobflick Bridge](https://github.com/sguzman/jobflick-bridge)** — Firefox Developer Edition-first bridge from ChatGPT to local Jobflick jobs, with explicit execution controls and result tracking.
 - **[Chat Queue](https://github.com/sguzman/chat-queue)** — Firefox Developer Edition-first ChatGPT prompt queue and floating HUD; coordinates with authenticated Chat Signals state before advancing queued messages.
+- **[Firefox TTS](https://github.com/sguzman/firefox-tts)** — Firefox Developer Edition-first offline Piper read-aloud extension; independent port of the Edge Natural TTS reader (in development).
 
 These are independent projects at different development and verification stages, **not extensions shipped by firefox-scripts**. See each repository for current status, installation instructions, and limitations. The older [script-monkey](https://github.com/sguzman/script-monkey) extension implementations are legacy reference material, not the current standalone source.
 
